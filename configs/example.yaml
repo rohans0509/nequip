@@ -14,9 +14,9 @@ default_dtype: float32                                                          
 # network
 r_max: 4.0                                                                        # cutoff radius in length units, here Angstrom, this is an important hyperparamter to scan
 num_layers: 4                                                                     # number of interaction blocks, we find 3-5 to work best
-l_max: 2                                                                          # the maximum irrep order (rotation order) for the network's features, l=2 is accurate but slower, l=1 if you want to be faster but less accurte
-parity: true                                                                      # whether to include features with odd mirror parity; often turning parity off gives equally good results but faster networks, so do consider this
-num_features: 32                                                                  # the multiplicity of the features, 32 is a good default for accurate network, if you want to be more accurate, go larger, if you want to be faster, go lower
+#l_max: 2                                                                          # the maximum irrep order (rotation order) for the network's features, l=2 is accurate but slower, l=1 if you want to be faster but less accurte
+#parity: true                                                                      # whether to include features with odd mirror parity; often turning parity off gives equally good results but faster networks, so do consider this
+#num_features: 32                                                                  # the multiplicity of the features, 32 is a good default for accurate network, if you want to be more accurate, go larger, if you want to be faster, go lower
 nonlinearity_type: gate                                                           # may be 'gate' or 'norm', 'gate' is recommended
 
 # scalar nonlinearities to use — available options are silu, ssp (shifted softplus), tanh, and abs.
@@ -155,3 +155,10 @@ per_species_rescale_scales: dataset_forces_rms
 
 # if explicit numbers are given for the shifts/scales, this parameter must specify whether the given numbers are unitless shifts/scales or are in the units of the dataset. If ``True``, any global rescalings will correctly be applied to the per-species values.
 # per_species_rescale_arguments_in_dataset_units: True
+
+
+#NEW
+chemical_embedding_irreps_out: 32x0e                                              # irreps for the chemical embedding of species
+feature_irreps_hidden: 32x0e+32x1e+32x2e+32x0o+32x1o+32x2o #32x0o + 32x0e + 32x1o + 32x1e                              # irreps used for hidden features, here we go up to lmax=1, with even and odd parities; for more accurate but slower networks, use l=2 or higher, smaller number of features is faster
+irreps_edge_sh: 0e + 1o                                                           # irreps of the spherical harmonics used for edges. If a single integer, indicates the full SH up to L_max=that_integer
+#conv_to_output_hidden_irreps_out: 16x0e                                           # irreps used in hidden layer of output block
