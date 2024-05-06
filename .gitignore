@@ -6,6 +6,7 @@ simon_configs/
 *wandb/
 *.npz
 results/
+resultsBLAH/
 experiments/
 nequip.egg-info/
 saved_models/

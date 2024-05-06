@@ -9,6 +9,7 @@ from nequip.nn import (
     AtomwiseLinear,
     AtomwiseReduce,
     ConvNetLayer,
+    ConvNetLayer0
 )
 from nequip.nn.embedding import (
     OneHotAtomEncoding,
@@ -111,6 +112,7 @@ def EnergyModel(
     # insertion preserves order
     for layer_i in range(num_layers):
         layers[f"layer{layer_i}_convnet"] = ConvNetLayer
+    # layers[f"layer{num_layers}_convnet"] = ConvNetLayer0
 
     # .update also maintains insertion order
     layers.update(
