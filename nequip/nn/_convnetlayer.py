@@ -203,7 +203,7 @@ class ConvNetLayer0(GraphModuleMixin, torch.nn.Module):
             -1: nonlinearity_gates["o"],
         }
 
-        self.feature_irreps_hidden = o3.Irreps("32x0o + 32x0o + 32x0o + 32x0o")
+        self.feature_irreps_hidden = o3.Irreps("256x0e")
         self.resnet = resnet
         self.num_layers = num_layers
 

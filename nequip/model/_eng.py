@@ -98,6 +98,7 @@ def EnergyModel(
     )
 
     num_layers = config.get("num_layers", 3)
+    invariant_layers= config.get("invariant_layers", 0)
 
     layers = {
         # -- Encode --
@@ -112,7 +113,10 @@ def EnergyModel(
     # insertion preserves order
     for layer_i in range(num_layers):
         layers[f"layer{layer_i}_convnet"] = ConvNetLayer
-    # layers[f"layer{num_layers}_convnet"] = ConvNetLayer0
+
+    # add invariant layers
+    for layer_i in range(invariant_layers):
+        layers[f"layer{num_layers+layer_i}_convnet"] = ConvNetLayer0
 
     # .update also maintains insertion order
     layers.update(
