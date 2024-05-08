@@ -9,7 +9,7 @@ batch_size: 1
 chemical_symbol_to_type:
   H: 0
   O: 1
-conv0_layers: 3
+conv0_layers: 0
 dataset: ase
 dataset_file_name: /datasets/water/water-dataset.extxyz
 dataset_seed: 456
@@ -25,7 +25,7 @@ early_stopping_upper_bounds:
   wall: 1.0e+100
 ema_decay: 0.99
 ema_use_num_updates: true
-feature_irreps_hidden: 32x0e+32x0o
+feature_irreps_hidden: 32x0e+32x1e+32x2e+32x3e+32x0o+32x1o+32x2o+32x3o
 invariant_layers: 2
 invariant_neurons: 64
 l_max: 1
@@ -61,7 +61,7 @@ metrics_components:
   - mae
   - PerAtom: true
 metrics_key: validation_loss
-n_train: 1000
+n_train: 100
 n_val: 100
 nonlinearity_gates:
   e: silu
@@ -72,7 +72,7 @@ nonlinearity_scalars:
 nonlinearity_type: gate
 num_basis: 8
 num_features: 32
-num_layers: 1
+num_layers: 4
 optimizer_amsgrad: true
 optimizer_betas:
 - 0.9
@@ -89,7 +89,7 @@ r_max: 4.5
 report_init_validation: false
 resnet: false
 root: results/toluene
-run_name: ntrain_lmax_0_invariant_3_epochs_200
+run_name: ntrain_100_lmax_3_invariant_0_epochs_200
 save_checkpoint_freq: -1
 save_ema_checkpoint_freq: -1
 seed: 123
