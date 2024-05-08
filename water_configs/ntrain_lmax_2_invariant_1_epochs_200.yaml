@@ -1,39 +1,39 @@
 BesselBasis_trainable: true
 PolynomialCutoff_p: 6
+allow_tf32: false
 append: true
+ase_args:
+  format: extxyz
 avg_num_neighbors: auto
-batch_size: 5
-chemical_embedding_irreps_out: 32x0e
-chemical_symbols:
-- H
-- C
+batch_size: 1
+chemical_symbol_to_type:
+  H: 0
+  O: 1
 conv0_layers: 1
-conv_to_output_hidden_irreps_out: 16x0e
-dataset: npz
-dataset_file_name: ./benchmark_data/toluene_ccsd_t-train.npz
+dataset: ase
+dataset_file_name: /datasets/water/water-dataset.extxyz
 dataset_seed: 456
-dataset_url: http://quantum-machine.org/gdml/data/npz/toluene_ccsd_t.zip
 default_dtype: float32
+early_stopping_cumulative_delta: false
+early_stopping_delta:
+  validation_loss: 0.005
 early_stopping_lower_bounds:
-  LR: 1.0e-05
+  LR: 1.0e-06
 early_stopping_patiences:
-  validation_loss: 50
+  validation_loss: 1000
+early_stopping_upper_bounds:
+  wall: 1.0e+100
 ema_decay: 0.99
 ema_use_num_updates: true
-feature_irreps_hidden: 32x0e+32x1e+32x2e+32x3e+32x0o+32x1o+32x2o+32x3o
+feature_irreps_hidden: 32x0e+32x1e+32x2e+32x0o+32x1o+32x2o
 invariant_layers: 2
 invariant_neurons: 64
-irreps_edge_sh: 0e + 1o
-key_mapping:
-  E: total_energy
-  F: forces
-  R: pos
-  z: atomic_numbers
+l_max: 1
 learning_rate: 0.005
-log_batch_freq: 10
+log_batch_freq: 1
 log_epoch_freq: 1
 loss_coeffs:
-  forces: 1
+  forces: 36846
   total_energy:
   - 1
   - PerAtomMSELoss
@@ -41,6 +41,7 @@ lr_scheduler_factor: 0.5
 lr_scheduler_name: ReduceLROnPlateau
 lr_scheduler_patience: 100
 max_epochs: 200
+max_gradient_norm: null
 metrics_components:
 - - forces
   - mae
@@ -60,8 +61,8 @@ metrics_components:
   - mae
   - PerAtom: true
 metrics_key: validation_loss
-n_train: 100
-n_val: 50
+n_train: 1000
+n_val: 100
 nonlinearity_gates:
   e: silu
   o: tanh
@@ -69,20 +70,26 @@ nonlinearity_scalars:
   e: silu
   o: tanh
 nonlinearity_type: gate
-npz_fixed_field_keys:
-- atomic_numbers
 num_basis: 8
+num_features: 32
 num_layers: 3
 optimizer_amsgrad: true
+optimizer_betas:
+- 0.9
+- 0.999
+optimizer_eps: 1.0e-08
 optimizer_name: Adam
+optimizer_weight_decay: 0
+parity: true
 per_species_rescale_scales: dataset_forces_rms
 per_species_rescale_scales_trainable: false
 per_species_rescale_shifts: dataset_per_atom_total_energy_mean
 per_species_rescale_shifts_trainable: false
-r_max: 4.0
-report_init_validation: true
+r_max: 4.5
+report_init_validation: false
+resnet: false
 root: results/toluene
-run_name: lmax_3_invariant_1_epochs_200
+run_name: ntrain_lmax_2_invariant_1_epochs_200
 save_checkpoint_freq: -1
 save_ema_checkpoint_freq: -1
 seed: 123
@@ -90,7 +97,4 @@ shuffle: true
 train_val_split: random
 use_ema: true
 use_sc: true
-validation_batch_size: 10
 verbose: info
-wandb: true
-wandb_project: toluene-example

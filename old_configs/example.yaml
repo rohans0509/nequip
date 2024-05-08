@@ -168,5 +168,5 @@ conv_to_output_hidden_irreps_out: 16x0e                                         
 max_epochs: 150                                                                  # stop training after _ number of epochs, we set a very large number here, it won't take this long in practice and we will use early stopping instead
 
 num_layers: 3                                                                     # number of interaction blocks, we find 3-5 to work best
-invariant_layers: 1
+conv0_layers: 1
 max_epochs: 150                                                                  # stop training after _ number of epochs, we set a very large number here, it won't take this long in practice and we will use early stopping instead
