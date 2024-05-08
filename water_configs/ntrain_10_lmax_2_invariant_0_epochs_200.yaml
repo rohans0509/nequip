@@ -13,6 +13,7 @@ conv0_layers: 0
 dataset: ase
 dataset_file_name: /datasets/water/water-dataset.extxyz
 dataset_seed: 456
+dataset_url: https://github.com/BingqingCheng/ab-initio-thermodynamics-of-water/blob/master/training-set/dataset_1593.xyz
 default_dtype: float32
 early_stopping_cumulative_delta: false
 early_stopping_delta:
@@ -88,7 +89,7 @@ per_species_rescale_shifts_trainable: false
 r_max: 4.5
 report_init_validation: false
 resnet: false
-root: results/toluene
+root: results/water
 run_name: ntrain_10_lmax_2_invariant_0_epochs_200
 save_checkpoint_freq: -1
 save_ema_checkpoint_freq: -1
