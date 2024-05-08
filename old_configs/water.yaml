@@ -11,7 +11,7 @@ allow_tf32: false
 # network
 r_max: 4.5                                                                        
 num_layers: 6                                                                    
-
+dataset_url: https://github.com/BingqingCheng/ab-initio-thermodynamics-of-water/blob/master/training-set/dataset_1593.xyz
 l_max: 1                                                                          
 parity: true                                                                      
 num_features: 32                                                                 
