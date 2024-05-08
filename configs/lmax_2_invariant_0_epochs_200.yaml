@@ -60,6 +60,7 @@ metrics_components:
   - mae
   - PerAtom: true
 metrics_key: validation_loss
+model_builders: EnergyModel
 n_train: 100
 n_val: 50
 nonlinearity_gates:

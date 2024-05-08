@@ -171,3 +171,4 @@ l_max: 1
 num_layers: 3                                                                     # number of interaction blocks, we find 3-5 to work best
 invariant_layers: 1
 max_epochs: 150                                                                  # stop training after _ number of epochs, we set a very large number here, it won't take this long in practice and we will use early stopping instead
+model_builders: EnergyModel                # build a full NequIP model
