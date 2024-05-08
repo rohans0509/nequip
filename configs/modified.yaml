@@ -158,8 +158,9 @@ per_species_rescale_scales: dataset_forces_rms
 
 #NEW
 chemical_embedding_irreps_out: 32x0e                                              # irreps for the chemical embedding of species
-feature_irreps_hidden: 32x0e+32x1e+32x2e+32x0o+32x1o+32x2o #32x0o + 32x0e + 32x1o + 32x1e                              # irreps used for hidden features, here we go up to lmax=1, with even and odd parities; for more accurate but slower networks, use l=2 or higher, smaller number of features is faster
+feature_irreps_hidden: 32x0e+32x1e+32x2e+32x0o+32x1o+32x2o                        # irreps used for hidden features, here we go up to lmax=1, with even and odd parities; for more accurate but slower networks, use l=2 or higher, smaller number of features is faster
 irreps_edge_sh: 0e + 1o                                                           # irreps of the spherical harmonics used for edges. If a single integer, indicates the full SH up to L_max=that_integer
 #conv_to_output_hidden_irreps_out: 16x0e                                           # irreps used in hidden layer of output block
 num_layers: 3                                                                     # number of interaction blocks, we find 3-5 to work best
 invariant_layers: 1
+max_epochs: 150                                                                  # stop training after _ number of epochs, we set a very large number here, it won't take this long in practice and we will use early stopping instead
