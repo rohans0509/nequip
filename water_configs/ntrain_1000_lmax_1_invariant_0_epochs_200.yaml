@@ -89,7 +89,7 @@ r_max: 4.5
 report_init_validation: false
 resnet: false
 root: results/toluene
-run_name: ntrain_lmax_1_invariant_0_epochs_200
+run_name: ntrain_1000_lmax_1_invariant_0_epochs_200
 save_checkpoint_freq: -1
 save_ema_checkpoint_freq: -1
 seed: 123

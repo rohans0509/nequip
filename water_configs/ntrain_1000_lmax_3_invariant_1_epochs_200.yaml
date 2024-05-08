@@ -25,7 +25,7 @@ early_stopping_upper_bounds:
   wall: 1.0e+100
 ema_decay: 0.99
 ema_use_num_updates: true
-feature_irreps_hidden: 32x0e+32x0o
+feature_irreps_hidden: 32x0e+32x1e+32x2e+32x3e+32x0o+32x1o+32x2o+32x3o
 invariant_layers: 2
 invariant_neurons: 64
 l_max: 1
@@ -89,7 +89,7 @@ r_max: 4.5
 report_init_validation: false
 resnet: false
 root: results/toluene
-run_name: ntrain_lmax_0_invariant_1_epochs_200
+run_name: ntrain_1000_lmax_3_invariant_1_epochs_200
 save_checkpoint_freq: -1
 save_ema_checkpoint_freq: -1
 seed: 123
