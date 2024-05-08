@@ -20,7 +20,7 @@ early_stopping_patiences:
 ema_decay: 0.99
 ema_use_num_updates: true
 feature_irreps_hidden: 32x0e+32x1e+32x2e+32x0o+32x1o+32x2o
-invariant_layers: 1
+invariant_layers: 0
 invariant_neurons: 64
 irreps_edge_sh: 0e + 1o
 key_mapping:
@@ -71,7 +71,6 @@ nonlinearity_type: gate
 npz_fixed_field_keys:
 - atomic_numbers
 num_basis: 8
-num_features: 32
 num_layers: 4
 optimizer_amsgrad: true
 optimizer_name: Adam

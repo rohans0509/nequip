@@ -71,7 +71,6 @@ nonlinearity_type: gate
 npz_fixed_field_keys:
 - atomic_numbers
 num_basis: 8
-num_features: 32
 num_layers: 3
 optimizer_amsgrad: true
 optimizer_name: Adam
