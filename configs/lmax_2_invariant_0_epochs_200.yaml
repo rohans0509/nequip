@@ -28,7 +28,6 @@ key_mapping:
   F: forces
   R: pos
   z: atomic_numbers
-l_max: 1
 learning_rate: 0.005
 log_batch_freq: 10
 log_epoch_freq: 1
@@ -60,7 +59,6 @@ metrics_components:
   - mae
   - PerAtom: true
 metrics_key: validation_loss
-model_builders: EnergyModel
 n_train: 100
 n_val: 50
 nonlinearity_gates:
