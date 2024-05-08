@@ -49,7 +49,6 @@ use_sc: true                                                                    
 # all arrays are expected to have the shape of (nframe, natom, ?) except the fixed fields
 # note that if your data set uses pbc, you need to also pass an array that maps to the nequip "pbc" key
 dataset: npz                                                                       # type of data set, can be npz or ase
-dataset: npz                                                                       # type of data set, can be npz or ase
 dataset_url: http://quantum-machine.org/gdml/data/npz/aspirin_ccsd.zip             # url to download the npz. optional
 dataset_file_name: ./benchmark_data/aspirin_ccsd-train.npz                         # path to data set filel_max: 1                                                              
 key_mapping:
@@ -60,9 +59,9 @@ key_mapping:
 npz_fixed_field_keys:                                                              # fields that are repeated across different examples
   - atomic_numbers
 
-# A list of atomic types to be found in the data. The NequIP types will be named with the chemical symbols, and inputs with the correct atomic numbers will be mapped to the corresponding types.
 chemical_symbols:
   - H
+  - O
   - C
 
 # logging
