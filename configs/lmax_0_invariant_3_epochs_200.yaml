@@ -7,6 +7,7 @@ chemical_embedding_irreps_out: 32x0e
 chemical_symbols:
 - H
 - C
+conv0_layers: 3
 conv_to_output_hidden_irreps_out: 16x0e
 dataset: npz
 dataset_file_name: ./benchmark_data/toluene_ccsd_t-train.npz
@@ -20,7 +21,7 @@ early_stopping_patiences:
 ema_decay: 0.99
 ema_use_num_updates: true
 feature_irreps_hidden: 32x0e+32x0o
-invariant_layers: 3
+invariant_layers: 2
 invariant_neurons: 64
 irreps_edge_sh: 0e + 1o
 key_mapping:

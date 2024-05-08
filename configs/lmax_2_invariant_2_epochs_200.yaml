@@ -7,6 +7,7 @@ chemical_embedding_irreps_out: 32x0e
 chemical_symbols:
 - H
 - C
+conv0_layers: 2
 conv_to_output_hidden_irreps_out: 16x0e
 dataset: npz
 dataset_file_name: ./benchmark_data/toluene_ccsd_t-train.npz
