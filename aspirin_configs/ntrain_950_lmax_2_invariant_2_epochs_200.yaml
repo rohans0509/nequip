@@ -6,6 +6,7 @@ batch_size: 5
 chemical_embedding_irreps_out: 32x0e
 chemical_symbols:
 - H
+- O
 - C
 conv0_layers: 2
 conv_to_output_hidden_irreps_out: 16x0e
