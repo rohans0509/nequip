@@ -270,8 +270,8 @@ def main(args=None, running_as_script: bool = True):
     ):
         # we know the train and val, get the rest
         all_idcs = set(range(len(dataset)))
-        val_idcs = torch.randperm(len(dataset))[:50]
-        train_idcs = torch.randperm(len(dataset))[:900]
+        val_idcs = set(torch.randperm(len(dataset))[:50])
+        train_idcs = set(torch.randperm(len(dataset))[:900])
         # set operations
         if dataset_is_validation:
             test_idcs = list(all_idcs - val_idcs)
