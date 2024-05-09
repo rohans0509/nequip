@@ -2,7 +2,7 @@ BesselBasis_trainable: true
 PolynomialCutoff_p: 6
 append: true
 avg_num_neighbors: auto
-batch_size: 5
+batch_size: 50
 chemical_embedding_irreps_out: 32x0e
 chemical_symbols:
 - H
@@ -21,7 +21,7 @@ early_stopping_patiences:
   validation_loss: 50
 ema_decay: 0.99
 ema_use_num_updates: true
-feature_irreps_hidden: 32x0e+32x1e+32x2e+32x0o+32x1o+32x2o
+feature_irreps_hidden: 32x0e+32x1e+32x2e+32x3e+32x0o+32x1o+32x2o+32x3o
 invariant_layers: 2
 invariant_neurons: 64
 irreps_edge_sh: 0e + 1o
@@ -61,7 +61,7 @@ metrics_components:
   - mae
   - PerAtom: true
 metrics_key: validation_loss
-n_train: 150
+n_train: 700
 n_val: 50
 nonlinearity_gates:
   e: silu
@@ -83,7 +83,7 @@ per_species_rescale_shifts_trainable: false
 r_max: 4.0
 report_init_validation: true
 root: results/aspirin
-run_name: ntrain_150_lmax_2_invariant_0_epochs_200
+run_name: ntrain_700_lmax_3_invariant_0_epochs_200
 save_checkpoint_freq: -1
 save_ema_checkpoint_freq: -1
 seed: 123
@@ -91,7 +91,7 @@ shuffle: true
 train_val_split: random
 use_ema: true
 use_sc: true
-validation_batch_size: 10
+validation_batch_size: 50
 verbose: info
 wandb: true
 wandb_project: aspirin
