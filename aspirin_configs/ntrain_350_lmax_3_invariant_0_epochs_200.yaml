@@ -82,7 +82,7 @@ per_species_rescale_shifts: dataset_per_atom_total_energy_mean
 per_species_rescale_shifts_trainable: false
 r_max: 4.0
 report_init_validation: true
-root: results/aspirin
+root: results/aspirin2
 run_name: ntrain_350_lmax_3_invariant_0_epochs_200
 save_checkpoint_freq: -1
 save_ema_checkpoint_freq: -1
