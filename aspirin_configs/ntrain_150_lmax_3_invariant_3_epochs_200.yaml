@@ -8,7 +8,7 @@ chemical_symbols:
 - H
 - O
 - C
-conv0_layers: 0
+conv0_layers: 3
 conv_to_output_hidden_irreps_out: 16x0e
 dataset: npz
 dataset_file_name: ./benchmark_data/aspirin_ccsd-train.npz
@@ -21,7 +21,7 @@ early_stopping_patiences:
   validation_loss: 50
 ema_decay: 0.99
 ema_use_num_updates: true
-feature_irreps_hidden: 32x0e+32x0o
+feature_irreps_hidden: 32x0e+32x1e+32x2e+32x3e+32x0o+32x1o+32x2o+32x3o
 invariant_layers: 2
 invariant_neurons: 64
 irreps_edge_sh: 0e + 1o
@@ -61,7 +61,7 @@ metrics_components:
   - mae
   - PerAtom: true
 metrics_key: validation_loss
-n_train: 350
+n_train: 150
 n_val: 50
 nonlinearity_gates:
   e: silu
@@ -73,7 +73,7 @@ nonlinearity_type: gate
 npz_fixed_field_keys:
 - atomic_numbers
 num_basis: 8
-num_layers: 4
+num_layers: 1
 optimizer_amsgrad: true
 optimizer_name: Adam
 per_species_rescale_scales: dataset_forces_rms
@@ -82,8 +82,8 @@ per_species_rescale_shifts: dataset_per_atom_total_energy_mean
 per_species_rescale_shifts_trainable: false
 r_max: 4.0
 report_init_validation: true
-root: results/aspirin2
-run_name: ntrain_350_lmax_0_invariant_0_epochs_200
+root: results/aspirin3
+run_name: ntrain_150_lmax_3_invariant_3_epochs_200
 save_checkpoint_freq: -1
 save_ema_checkpoint_freq: -1
 seed: 123
