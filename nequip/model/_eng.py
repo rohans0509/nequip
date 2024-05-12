@@ -111,12 +111,21 @@ def EnergyModel(
 
     # add convnet layers
     # insertion preserves order
-    for layer_i in range(num_layers):
-        layers[f"layer{layer_i}_convnet"] = ConvNetLayer
+    # for layer_i in range(num_layers):
+    #     layers[f"layer{layer_i}_convnet"] = ConvNetLayer
 
-    # add invariant layers
-    for layer_i in range(conv0_layers):
-        layers[f"layer{num_layers+layer_i}_convnet"] = ConvNetLayer0
+    # # add invariant layers
+    # for layer_i in range(conv0_layers):
+    #     layers[f"layer{num_layers+layer_i}_convnet"] = ConvNetLayer0
+
+    layer_irreps=config["layer_irreps"].split(",")
+    for i in range(num_layers):
+        layers[f"layer{i}_convnet"] = (
+            ConvNetLayer,
+            dict(
+                feature_irreps_hidden=layer_irreps[i],
+            ),
+        )
 
     # .update also maintains insertion order
     layers.update(
