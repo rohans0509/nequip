@@ -8,8 +8,7 @@ from nequip.nn import (
     SequentialGraphNetwork,
     AtomwiseLinear,
     AtomwiseReduce,
-    ConvNetLayer,
-    ConvNetLayer0
+    ConvNetLayer
 )
 from nequip.nn.embedding import (
     OneHotAtomEncoding,
