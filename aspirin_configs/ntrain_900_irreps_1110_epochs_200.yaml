@@ -30,7 +30,7 @@ key_mapping:
   F: forces
   R: pos
   z: atomic_numbers
-layer_irreps: 32x0e+32x1e+32x0o+32x1o,32x0e+32x1e+32x0o+32x1o,128x0e+128x1e+128x0o+128x1o,128x0e
+layer_irreps: 32x0e+32x1e+32x0o+32x1o,32x0e+32x1e+32x0o+32x1o,32x0e+32x1e+32x0o+32x1o,32x0e
 learning_rate: 0.005
 log_batch_freq: 10
 log_epoch_freq: 1
