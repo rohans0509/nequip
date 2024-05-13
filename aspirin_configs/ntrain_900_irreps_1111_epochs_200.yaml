@@ -30,7 +30,7 @@ key_mapping:
   F: forces
   R: pos
   z: atomic_numbers
-layer_irreps: 32x0e+32x1e+32x0o+32x1o,32x0e,32x0e,32x0e
+layer_irreps: 32x0e+32x1e+32x0o+32x1o,32x0e+32x1e+32x0o+32x1o,128x0e+128x1e+128x0o+128x1o,128x0e+128x1e+128x0o+128x1o
 learning_rate: 0.005
 log_batch_freq: 10
 log_epoch_freq: 1
@@ -83,8 +83,8 @@ per_species_rescale_shifts: dataset_per_atom_total_energy_mean
 per_species_rescale_shifts_trainable: false
 r_max: 4.0
 report_init_validation: true
-root: results/aspirin3
-run_name: ntrain_900_irreps_1000_epochs_200
+root: results/aspirin_4
+run_name: ntrain_900_irreps_1111_epochs_200
 save_checkpoint_freq: -1
 save_ema_checkpoint_freq: -1
 seed: 123
