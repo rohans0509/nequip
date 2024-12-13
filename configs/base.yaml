@@ -1,0 +1,136 @@
+# Base configuration for NequIP experiments
+run_name: nequip_experiment
+
+# Model architecture
+model_builders:
+  - LayerwiseIrrepsConfig
+  - EnergyModel
+
+# Default network parameters
+seed: 123
+dataset_seed: 456
+append: true
+default_dtype: float32
+
+# Network parameters
+r_max: 4.0
+nonlinearity_type: gate
+
+# Nonlinearities
+nonlinearity_scalars:
+  e: silu
+  o: tanh
+
+nonlinearity_gates:
+  e: silu
+  o: tanh
+
+# Radial basis
+num_basis: 8
+BesselBasis_trainable: true
+PolynomialCutoff_p: 6
+layerwise_irreps:
+- l_max: 1
+  num_features: 32
+  parity: true
+- l_max: 2
+  num_features: 64
+  parity: true
+- l_max: 3
+  num_features: 128
+  parity: true
+# Radial network
+invariant_layers: 2
+invariant_neurons: 64
+avg_num_neighbors: auto
+use_sc: true
+
+# Dataset configuration
+dataset: npz
+dataset_file_name: "path/to/dataset"
+key_mapping:
+  z: atomic_numbers
+  E: total_energy
+  F: forces
+  R: pos
+npz_fixed_field_keys:
+  - atomic_numbers
+
+chemical_symbols:
+  - H
+  - C
+
+# Training parameters
+max_epochs: 100000
+batch_size: 5
+validation_batch_size: 10
+learning_rate: 0.005
+n_train: 100
+n_val: 50
+train_val_split: random
+shuffle: true
+metrics_key: validation_loss
+
+# Model averaging
+use_ema: true
+ema_decay: 0.99
+ema_use_num_updates: true
+report_init_validation: true
+
+# Early stopping
+early_stopping_patiences:
+  validation_loss: 50
+
+early_stopping_lower_bounds:
+  LR: 1.0e-5
+
+# Loss function
+loss_coeffs:
+  forces: 1
+  total_energy:
+    - 1
+    - PerAtomMSELoss
+
+# Metrics configuration
+metrics_components:
+  - - forces
+    - mae
+  - - forces
+    - rmse
+  - - forces
+    - mae
+    - PerSpecies: True
+      report_per_component: False
+  - - forces
+    - rmse
+    - PerSpecies: True
+      report_per_component: False
+  - - total_energy
+    - mae
+  - - total_energy
+    - mae
+    - PerAtom: True
+
+# Optimizer settings
+optimizer_name: Adam
+optimizer_amsgrad: true
+
+# Learning rate scheduler
+lr_scheduler_name: ReduceLROnPlateau
+lr_scheduler_patience: 100
+lr_scheduler_factor: 0.5
+
+# Rescaling options
+per_species_rescale_shifts_trainable: false
+per_species_rescale_scales_trainable: false
+per_species_rescale_shifts: dataset_per_atom_total_energy_mean
+per_species_rescale_scales: dataset_forces_rms
+
+# Logging
+wandb: true
+wandb_project: nequip-experiments
+verbose: info
+log_batch_freq: 10
+log_epoch_freq: 1
+save_checkpoint_freq: -1
+save_ema_checkpoint_freq: -1

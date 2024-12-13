@@ -1,0 +1,30 @@
+[tool.poetry]
+name = "nequip"
+version = "0.1.0"
+description = ""
+authors = ["rohans0509 <rohansharma0509@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.11,<3.12"
+numpy = "^2.1.3"
+ase = "^3.23.0"
+tqdm = "^4.67.0"
+torch = "^2.5.1"
+e3nn = "^0.5.4"
+pyyaml = "^6.0.2"
+torch-runstats = "^0.2.0"
+torch-ema = "^0.3"
+pandas = "^2.2.3"
+pydantic = "^2.10.3"
+pydantic-settings = "^2.6.1"
+wandb = "^0.18.7"
+
+[tool.poetry.scripts]
+nequip-train = "nequip.scripts.train:main"
+nequip-evaluate = "nequip.scripts.evaluate:main"
+nequip-deploy = "nequip.scripts.deploy:main"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"

@@ -138,3 +138,70 @@ def EnergyModel(
         shared_params=config,
         layers=layers,
     )
+
+
+def LayerwiseIrrepsConfig(config, prefix: Optional[str] = None):
+    """Builder that configures different irreps for each layer.
+    
+    Config parameters:
+    - layerwise_irreps: List of dicts, one per layer, each containing:
+        - l_max: maximum angular momentum
+        - num_features: number of features
+        - parity: whether to use parity (optional)
+    """
+    prefix = "" if prefix is None else f"{prefix}_"
+    
+    # Get layer configurations
+    layer_configs = config.get(f"{prefix}layerwise_irreps", [])
+    num_layers = len(layer_configs)
+    
+    if num_layers == 0:
+        raise ValueError("Must specify at least one layer in layerwise_irreps")
+        
+    update = {}
+    
+    # Chemical embedding uses first layer's config
+    first_layer = layer_configs[0]
+    update[f"{prefix}chemical_embedding_irreps_out"] = repr(
+        o3.Irreps([(first_layer["num_features"], (0, 1))])
+    )
+    
+    # Configure each layer's irreps
+    for i, layer_cfg in enumerate(layer_configs):
+        l_max = layer_cfg["l_max"]
+        num_features = layer_cfg["num_features"]
+        parity = layer_cfg.get("parity", True)
+        
+        # Build irreps for this layer
+        layer_irreps = []
+        for l in range(l_max + 1):
+            # Add both parities if parity is True
+            if parity:
+                layer_irreps.extend([
+                    (num_features, (l, 1)),   # even parity
+                    (num_features, (l, -1))   # odd parity
+                ])
+            else:
+                layer_irreps.append((num_features, (l, 1)))
+                
+        update[f"{prefix}feature_irreps_hidden_{i}"] = repr(o3.Irreps(layer_irreps))
+    
+    # Edge attributes use maximum l_max across all layers
+    max_l_max = max(cfg["l_max"] for cfg in layer_configs)
+    update[f"{prefix}irreps_edge_sh"] = repr(
+        o3.Irreps.spherical_harmonics(max_l_max, p=1)
+    )
+    
+    # Output uses final layer's configuration
+    final_layer = layer_configs[-1]
+    update[f"{prefix}conv_to_output_hidden_irreps_out"] = repr(
+        o3.Irreps([(final_layer["num_features"], (0, 1))])
+    )
+    
+    # Update config
+    for k, v in update.items():
+        if k in config:
+            assert config[k] == v, f"Inconsistent irreps specification for {k}"
+        config[k] = v
+    
+    return config
