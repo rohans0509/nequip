@@ -97,7 +97,7 @@ def EnergyModel(
     )
 
     num_layers = config.get("num_layers", 3)
-    conv0_layers= config.get("conv0_layers", 0)
+    print(f"num_layers: {num_layers}")
 
     layers = {
         # -- Encode --

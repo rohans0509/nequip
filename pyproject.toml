@@ -1,0 +1,22 @@
+[tool.poetry]
+name = "nequip"
+version = "0.1.0"
+description = ""
+authors = ["rohans0509 <rohansharma0509@gmail.com>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.10,<3.11"
+e3nn = "^0.5.4"
+pyyaml = "^6.0.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+main = "main:main"
+nequip-train = "nequip.train:main"
+nequip-deploy = "nequip.deploy:main"
+nequip-evaluate = "nequip.evaluate:main"
