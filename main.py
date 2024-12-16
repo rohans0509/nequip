@@ -4,6 +4,8 @@ from src.experiments.training_manager import TrainingManager
 from src.visualization.visualization_manager import VisualizationManager
 from pathlib import Path
 import src.settings as settings
+from tqdm import tqdm
+
 
 def main():
     # Initialize managers
@@ -25,7 +27,7 @@ def main():
     )
     
     # Run experiments
-    for config_path in config_paths:
+    for config_path in tqdm(config_paths, desc="Running experiments"):
         print(f"Training with config: {config_path}")
         trainer.train(config_path)
         

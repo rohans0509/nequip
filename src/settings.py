@@ -13,11 +13,11 @@ TOTAL_LAYERS = 4  # Added this line
 
 # Model parameters grid
 PARAM_GRID = {
-    'n_train': [100,200,500,800],
-    'lmax': [1,2],
-    'num_features': [32],
-    'max_epochs': [200],
-    'n_val': [50],
+    'n_train': [100,200,400],
+    'lmax': [2,4],
+    'num_features': [16],
+    'max_epochs': [100],
+    'n_val': [74],
     'inv_layers': [1,2,3],
 }
 
