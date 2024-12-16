@@ -14,32 +14,13 @@ class TrainingManager:
             
         cmd = f"nequip-train {config_path}"
         try:
-            # Show output in real-time
-            process = subprocess.Popen(
-                cmd,
-                shell=True,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE,
-                universal_newlines=True,
-                bufsize=1
-            )
-            
-            # Print output as it comes
-            while True:
-                output = process.stdout.readline()
-                if output == '' and process.poll() is not None:
-                    break
-                if output:
-                    print(output.strip())
+            # Simple direct execution - output goes straight to terminal
+            subprocess.run(cmd, shell=True, check=True)
                     
-            # Check for errors
-            if process.returncode != 0:
-                raise subprocess.CalledProcessError(process.returncode, cmd)
-                
         except subprocess.CalledProcessError as e:
-            print(f"Training failed with error:\n{e.stderr}")
+            print(f"Training failed with error code {e.returncode}")
             raise
-    
+        
     def deploy(self, train_dir: str, output_path: Optional[str] = None) -> None:
         """Deploy trained model."""
         train_dir = Path(train_dir)
