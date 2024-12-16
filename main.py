@@ -1,6 +1,7 @@
 # src/main.py
 from src.experiments.experiment_manager import ExperimentManager
 from src.experiments.training_manager import TrainingManager
+from src.visualization.visualization_manager import VisualizationManager
 from pathlib import Path
 import src.settings as settings
 
@@ -28,12 +29,23 @@ def main():
         print(f"Training with config: {config_path}")
         trainer.train(config_path)
         
-        # Get train directory from config path
-        train_dir = Path(config_path).parent.parent / 'checkpoints'
+        # Get train directory from config name
+        config_name = Path(config_path).stem  # Get filename without extension
+        train_dir = Path(config_path).parent.parent / config_name
         
         # Deploy and evaluate
         trainer.deploy(str(train_dir))
         trainer.evaluate(str(train_dir))
-
+    
+    # Visualize results
+    try:
+        visualization_manager = VisualizationManager(
+            experiment_name=settings.EXPERIMENT_NAME, 
+            base_dir=settings.BASE_DIR
+        )
+        visualization_manager.visualize_results()
+    except Exception as e:
+        print(f"Visualization failed: {e}")
+    
 if __name__ == "__main__":
     main()

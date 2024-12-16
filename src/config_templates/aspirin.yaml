@@ -22,7 +22,8 @@ nonlinearity_type: gate                                                         
 
 model_builders:
  - EnergyModel                # build a full NequIP model
-
+ - PerSpeciesRescale          # add per-atom / per-species scaling and shifting to the NequIP model before the total energy sum
+ - ForceOutput  
 # scalar nonlinearities to use — available options are silu, ssp (shifted softplus), tanh, and abs.
 # Different nonlinearities are specified for e (even) and o (odd) parity;
 # note that only tanh and abs are correct for o (odd parity)
