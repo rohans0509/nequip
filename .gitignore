@@ -7,7 +7,7 @@ simon_configs/
 *.npz
 results/
 resultsBLAH/
-
+setup.py
 nequip.egg-info/
 saved_models/
 cov*.xml
