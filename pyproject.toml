@@ -1,22 +1,46 @@
 [tool.poetry]
 name = "nequip"
-version = "0.1.0"
-description = ""
-authors = ["rohans0509 <rohansharma0509@gmail.com>"]
-readme = "README.md"
+version = "0.0.0"  # You'll want to set your actual version here
+description = "NequIP is an open-source code for building E(3)-equivariant interatomic potentials."
+authors = [
+    "Simon Batzner",
+    "Albert Musealian",
+    "Lixin Sun",
+    "Anders Johansson",
+    "Mario Geiger",
+    "Tess Smidt"
+]
+repository = "https://github.com/mir-group/nequip"
+packages = [
+    { include = "nequip" }
+]
 
 [tool.poetry.dependencies]
-python = "^3.10,<3.11"
-e3nn = "^0.5.4"
-pyyaml = "^6.0.2"
-
-
-[build-system]
-requires = ["poetry-core"]
-build-backend = "poetry.core.masonry.api"
+python = ">=3.8"
+scipy = ">1.6.1"
+numpy = ">1.7"
+ase = "*"
+tqdm = "*"
+torch = ">=1.10.0,!=1.12.0"
+e3nn = "*"
+pyyaml = "*"
+contextlib2 = { version = "*", python = "<3.7" }
+contextvars = { version = "*", python = "<3.7" }
+typing-extensions = { version = "*"}
+torch-runstats = "*"
+torch-ema = "*"
+wandb = "*"
+matplotlib = "*"
+seaborn = "*"
+pandas = "*"
+ipykernel = "^6.29.5"
 
 [tool.poetry.scripts]
-main = "main:main"
-nequip-train = "nequip.train:main"
-nequip-deploy = "nequip.deploy:main"
-nequip-evaluate = "nequip.evaluate:main"
+nequip-train = "nequip.scripts.train:main"
+nequip-evaluate = "nequip.scripts.evaluate:main"
+nequip-benchmark = "nequip.scripts.benchmark:main"
+nequip-deploy = "nequip.scripts.deploy:main"
+
+[build-system]
+requires = ["poetry-core>=1.0.0"]
+build-backend = "poetry.core.masonry.api"
