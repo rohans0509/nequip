@@ -1,0 +1,169 @@
+config_path,layer_0_l_max,layer_0_features,layer_1_l_max,layer_1_features,layer_2_l_max,layer_2_features,exp_dir,dataset_name,error
+data/experiments/experiment_20241213_162406/exp_0_Aspirin_l1f32_l2f32_l3f32/config.yaml,1,32,2,32,3,32,data/experiments/experiment_20241213_162406/exp_0_Aspirin_l1f32_l2f32_l3f32,Aspirin,"Training failed: Training process failed with code 1.
+Log content:
+[W1213 16:24:09.055191000 init.cpp:858] Warning: Use _jit_set_fusion_strategy, bailout depth is deprecated. Setting to (STATIC, 2) (function operator())
+wandb: Currently logged in as: rohans0509. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in /Users/rohan/Desktop/Projects/nequip/wandb/run-20241213_162410-v7y3shjf
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run exp_0_Aspirin_l1f32_l2f32_l3f32
+wandb: ⭐️ View project at https://wandb.ai/rohans0509/nequip-experiments
+wandb: 🚀 View run at https://wandb.ai/rohans0509/nequip-experiments/runs/v7y3shjf
+Torch device: cpu
+Processing dataset...
+Traceback (most recent call last):
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/auto_init.py"", line 232, in instantiate
+    instance = builder(**positional_args, **final_optional_args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 707, in __init__
+    super().__init__(
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 166, in __init__
+    super().__init__(root=root, type_mapper=type_mapper)
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 50, in __init__
+    super().__init__(root=root, transform=type_mapper)
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/torch_geometric/dataset.py"", line 91, in __init__
+    self._process()
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/torch_geometric/dataset.py"", line 176, in _process
+    self.process()
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 218, in process
+    data = self.get_data()
+           ^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 727, in get_data
+    data = np.load(self.raw_dir + ""/"" + self.raw_file_names[0], allow_pickle=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Library/Caches/pypoetry/virtualenvs/nequip-ghaP8RXe-py3.11/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py"", line 459, in load
+    fid = stack.enter_context(open(os.fspath(file), ""rb""))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/rohan/Desktop/Projects/nequip/benchmark_data/aspirin_ccsd_train.npz'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File ""/Users/rohan/Library/Caches/pypoetry/virtualenvs/nequip-ghaP8RXe-py3.11/bin/nequip-train"", line 6, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 72, in main
+    trainer = fresh_start(config)
+              ^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 148, in fresh_start
+    dataset = dataset_from_config(config, prefix=""dataset"")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/_build.py"", line 78, in dataset_from_config
+    instance, _ = instantiate(
+                  ^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/auto_init.py"", line 234, in instantiate
+    raise RuntimeError(
+RuntimeError: Failed to build object with prefix `dataset` using builder `NpzDataset`
+"
+data/experiments/experiment_20241213_162406/exp_1_Aspirin_l2f32_l2f64_l2f128/config.yaml,2,32,2,64,2,128,data/experiments/experiment_20241213_162406/exp_1_Aspirin_l2f32_l2f64_l2f128,Aspirin,"Training failed: Training process failed with code 1.
+Log content:
+[W1213 16:24:14.524982000 init.cpp:858] Warning: Use _jit_set_fusion_strategy, bailout depth is deprecated. Setting to (STATIC, 2) (function operator())
+wandb: Currently logged in as: rohans0509. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in /Users/rohan/Desktop/Projects/nequip/wandb/run-20241213_162414-gitrhtx5
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run exp_1_Aspirin_l2f32_l2f64_l2f128
+wandb: ⭐️ View project at https://wandb.ai/rohans0509/nequip-experiments
+wandb: 🚀 View run at https://wandb.ai/rohans0509/nequip-experiments/runs/gitrhtx5
+Torch device: cpu
+Processing dataset...
+Traceback (most recent call last):
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/auto_init.py"", line 232, in instantiate
+    instance = builder(**positional_args, **final_optional_args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 707, in __init__
+    super().__init__(
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 166, in __init__
+    super().__init__(root=root, type_mapper=type_mapper)
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 50, in __init__
+    super().__init__(root=root, transform=type_mapper)
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/torch_geometric/dataset.py"", line 91, in __init__
+    self._process()
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/torch_geometric/dataset.py"", line 176, in _process
+    self.process()
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 218, in process
+    data = self.get_data()
+           ^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 727, in get_data
+    data = np.load(self.raw_dir + ""/"" + self.raw_file_names[0], allow_pickle=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Library/Caches/pypoetry/virtualenvs/nequip-ghaP8RXe-py3.11/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py"", line 459, in load
+    fid = stack.enter_context(open(os.fspath(file), ""rb""))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/rohan/Desktop/Projects/nequip/benchmark_data/aspirin_ccsd_train.npz'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File ""/Users/rohan/Library/Caches/pypoetry/virtualenvs/nequip-ghaP8RXe-py3.11/bin/nequip-train"", line 6, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 72, in main
+    trainer = fresh_start(config)
+              ^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 148, in fresh_start
+    dataset = dataset_from_config(config, prefix=""dataset"")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/_build.py"", line 78, in dataset_from_config
+    instance, _ = instantiate(
+                  ^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/auto_init.py"", line 234, in instantiate
+    raise RuntimeError(
+RuntimeError: Failed to build object with prefix `dataset` using builder `NpzDataset`
+"
+data/experiments/experiment_20241213_162406/exp_2_Aspirin_l1f32_l2f64_l3f128/config.yaml,1,32,2,64,3,128,data/experiments/experiment_20241213_162406/exp_2_Aspirin_l1f32_l2f64_l3f128,Aspirin,"Training failed: Training process failed with code 1.
+Log content:
+[W1213 16:24:18.599726000 init.cpp:858] Warning: Use _jit_set_fusion_strategy, bailout depth is deprecated. Setting to (STATIC, 2) (function operator())
+wandb: Currently logged in as: rohans0509. Use `wandb login --relogin` to force relogin
+wandb: Tracking run with wandb version 0.18.7
+wandb: Run data is saved locally in /Users/rohan/Desktop/Projects/nequip/wandb/run-20241213_162418-9mspyku0
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run exp_2_Aspirin_l1f32_l2f64_l3f128
+wandb: ⭐️ View project at https://wandb.ai/rohans0509/nequip-experiments
+wandb: 🚀 View run at https://wandb.ai/rohans0509/nequip-experiments/runs/9mspyku0
+Torch device: cpu
+Processing dataset...
+Traceback (most recent call last):
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/auto_init.py"", line 232, in instantiate
+    instance = builder(**positional_args, **final_optional_args)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 707, in __init__
+    super().__init__(
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 166, in __init__
+    super().__init__(root=root, type_mapper=type_mapper)
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 50, in __init__
+    super().__init__(root=root, transform=type_mapper)
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/torch_geometric/dataset.py"", line 91, in __init__
+    self._process()
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/torch_geometric/dataset.py"", line 176, in _process
+    self.process()
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 218, in process
+    data = self.get_data()
+           ^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/dataset.py"", line 727, in get_data
+    data = np.load(self.raw_dir + ""/"" + self.raw_file_names[0], allow_pickle=True)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Library/Caches/pypoetry/virtualenvs/nequip-ghaP8RXe-py3.11/lib/python3.11/site-packages/numpy/lib/_npyio_impl.py"", line 459, in load
+    fid = stack.enter_context(open(os.fspath(file), ""rb""))
+                              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/Users/rohan/Desktop/Projects/nequip/benchmark_data/aspirin_ccsd_train.npz'
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File ""/Users/rohan/Library/Caches/pypoetry/virtualenvs/nequip-ghaP8RXe-py3.11/bin/nequip-train"", line 6, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 72, in main
+    trainer = fresh_start(config)
+              ^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 148, in fresh_start
+    dataset = dataset_from_config(config, prefix=""dataset"")
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/data/_build.py"", line 78, in dataset_from_config
+    instance, _ = instantiate(
+                  ^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/auto_init.py"", line 234, in instantiate
+    raise RuntimeError(
+RuntimeError: Failed to build object with prefix `dataset` using builder `NpzDataset`
+"

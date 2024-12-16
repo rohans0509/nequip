@@ -1,0 +1,49 @@
+config_path,layer_0_l_max,layer_0_features,layer_1_l_max,layer_1_features,layer_2_l_max,layer_2_features,exp_dir,dataset_name,error
+data/experiments/experiment_20241213_162558/exp_0_Aspirin_l1f32_l2f32_l3f32/config.yaml,1,32,2,32,3,32,data/experiments/experiment_20241213_162558/exp_0_Aspirin_l1f32_l2f32_l3f32,Aspirin,"Training failed: Training process failed with code 1.
+Log content:
+Traceback (most recent call last):
+  File ""/Users/rohan/Library/Caches/pypoetry/virtualenvs/nequip-ghaP8RXe-py3.11/bin/nequip-train"", line 6, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 74, in main
+    trainer = restart(config)
+              ^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 204, in restart
+    dictionary = load_file(
+                 ^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/savenload.py"", line 259, in load_file
+    raise OSError(f""file {filename} at {abs_path} is not found"")
+OSError: file .//exp_0_Aspirin_l1f32_l2f32_l3f32/trainer.pth at /Users/rohan/Desktop/Projects/nequip/exp_0_Aspirin_l1f32_l2f32_l3f32/trainer.pth is not found
+"
+data/experiments/experiment_20241213_162558/exp_1_Aspirin_l2f32_l2f64_l2f128/config.yaml,2,32,2,64,2,128,data/experiments/experiment_20241213_162558/exp_1_Aspirin_l2f32_l2f64_l2f128,Aspirin,"Training failed: Training process failed with code 1.
+Log content:
+Traceback (most recent call last):
+  File ""/Users/rohan/Library/Caches/pypoetry/virtualenvs/nequip-ghaP8RXe-py3.11/bin/nequip-train"", line 6, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 74, in main
+    trainer = restart(config)
+              ^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 204, in restart
+    dictionary = load_file(
+                 ^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/savenload.py"", line 259, in load_file
+    raise OSError(f""file {filename} at {abs_path} is not found"")
+OSError: file .//exp_1_Aspirin_l2f32_l2f64_l2f128/trainer.pth at /Users/rohan/Desktop/Projects/nequip/exp_1_Aspirin_l2f32_l2f64_l2f128/trainer.pth is not found
+"
+data/experiments/experiment_20241213_162558/exp_2_Aspirin_l1f32_l2f64_l3f128/config.yaml,1,32,2,64,3,128,data/experiments/experiment_20241213_162558/exp_2_Aspirin_l1f32_l2f64_l3f128,Aspirin,"Training failed: Training process failed with code 1.
+Log content:
+Traceback (most recent call last):
+  File ""/Users/rohan/Library/Caches/pypoetry/virtualenvs/nequip-ghaP8RXe-py3.11/bin/nequip-train"", line 6, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 74, in main
+    trainer = restart(config)
+              ^^^^^^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/scripts/train.py"", line 204, in restart
+    dictionary = load_file(
+                 ^^^^^^^^^^
+  File ""/Users/rohan/Desktop/Projects/nequip/nequip/utils/savenload.py"", line 259, in load_file
+    raise OSError(f""file {filename} at {abs_path} is not found"")
+OSError: file .//exp_2_Aspirin_l1f32_l2f64_l3f128/trainer.pth at /Users/rohan/Desktop/Projects/nequip/exp_2_Aspirin_l1f32_l2f64_l3f128/trainer.pth is not found
+"

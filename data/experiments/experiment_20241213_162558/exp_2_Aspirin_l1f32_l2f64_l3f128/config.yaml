@@ -1,0 +1,103 @@
+BesselBasis_trainable: true
+PolynomialCutoff_p: 6
+append: true
+avg_num_neighbors: auto
+batch_size: 5
+chemical_symbols:
+- H
+- C
+- O
+dataset: npz
+dataset_file_name: benchmark_data/aspirin_ccsd-train.npz
+dataset_seed: 456
+default_dtype: float32
+early_stopping_lower_bounds:
+  LR: 1.0e-05
+early_stopping_patiences:
+  validation_loss: 50
+ema_decay: 0.99
+ema_use_num_updates: true
+invariant_layers: 2
+invariant_neurons: 64
+key_mapping:
+  E: total_energy
+  F: forces
+  R: pos
+  z: atomic_numbers
+layerwise_irreps:
+- l_max: 1
+  num_features: 32
+  parity: true
+- l_max: 2
+  num_features: 64
+  parity: true
+- l_max: 3
+  num_features: 128
+  parity: true
+learning_rate: 0.005
+log_batch_freq: 10
+log_epoch_freq: 1
+loss_coeffs:
+  forces: 1
+  total_energy:
+  - 1
+  - PerAtomMSELoss
+lr_scheduler_factor: 0.5
+lr_scheduler_name: ReduceLROnPlateau
+lr_scheduler_patience: 100
+max_epochs: 100000
+metrics_components:
+- - forces
+  - mae
+- - forces
+  - rmse
+- - forces
+  - mae
+  - PerSpecies: true
+    report_per_component: false
+- - forces
+  - rmse
+  - PerSpecies: true
+    report_per_component: false
+- - total_energy
+  - mae
+- - total_energy
+  - mae
+  - PerAtom: true
+metrics_key: validation_loss
+model_builders:
+- LayerwiseIrrepsConfig
+- EnergyModel
+n_train: 100
+n_val: 50
+nonlinearity_gates:
+  e: silu
+  o: tanh
+nonlinearity_scalars:
+  e: silu
+  o: tanh
+nonlinearity_type: gate
+npz_fixed_field_keys:
+- atomic_numbers
+num_basis: 8
+optimizer_amsgrad: true
+optimizer_name: Adam
+per_species_rescale_scales: dataset_forces_rms
+per_species_rescale_scales_trainable: false
+per_species_rescale_shifts: dataset_per_atom_total_energy_mean
+per_species_rescale_shifts_trainable: false
+r_max: 4.0
+report_init_validation: true
+run_name: exp_2_Aspirin_l1f32_l2f64_l3f128
+save_checkpoint_freq: -1
+save_ema_checkpoint_freq: -1
+seed: 123
+shuffle: true
+test_file_name: benchmark_data/aspirin_ccsd-test.npz
+train_val_split: random
+use_ema: true
+use_sc: true
+validation_batch_size: 10
+verbose: info
+wandb: true
+wandb_project: nequip-experiments
