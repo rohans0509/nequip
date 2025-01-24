@@ -9,16 +9,16 @@ TEMPLATE_DIR = Path("src/config_templates")
 EXPERIMENT_NAME = "aspirin_e3nn_study"
 
 # Model architecture settings
-TOTAL_LAYERS = 4  # Added this line
+TOTAL_LAYERS = 3  # Added this line
 
 # Model parameters grid
 PARAM_GRID = {
-    'n_train': [100,200,400],
+    'n_train': [100,200],
     'lmax': [2,4],
     'num_features': [16],
-    'max_epochs': [100],
+    'max_epochs': [3],
     'n_val': [74],
-    'inv_layers': [1,2,3],
+    'inv_layers': [1,2],
 }
 
 # Training settings

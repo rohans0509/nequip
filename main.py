@@ -1,7 +1,7 @@
 # src/main.py
-from src.experiments.experiment_manager import ExperimentManager
-from src.experiments.training_manager import TrainingManager
-from src.visualization.visualization_manager import VisualizationManager
+from src.managers.experiment_manager import ExperimentManager
+from src.managers.training_manager import TrainingManager
+from src.managers.visualization_manager import VisualizationManager
 from pathlib import Path
 import src.settings as settings
 from tqdm import tqdm

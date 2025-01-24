@@ -14,7 +14,6 @@ default_dtype: float32                                                          
 
 # network
 r_max: 4.0                                                                        # cutoff radius in length units, here Angstrom, this is an important hyperparamter to scan
-num_layers: 4                                                                     # number of interaction blocks, we find 3-5 to work best
 #l_max: 2                                                                          # the maximum irrep order (rotation order) for the network's features, l=2 is accurate but slower, l=1 if you want to be faster but less accurte
 #parity: true                                                                      # whether to include features with odd mirror parity; often turning parity off gives equally good results but faster networks, so do consider this
 #num_features: 32                                                                  # the multiplicity of the features, 32 is a good default for accurate network, if you want to be more accurate, go larger, if you want to be faster, go lower
@@ -84,7 +83,6 @@ n_val: 50                                                                       
 learning_rate: 0.005                                                               # learning rate, we found values between 0.01 and 0.005 to work best - this is often one of the most important hyperparameters to tune
 batch_size: 5                                                                 # batch size, we found it important to keep this small for most applications including forces (1-5); for energy-only training, higher batch sizes work better
 validation_batch_size: 50                                                          # batch size for evaluating the model during validation. This does not affect the training results, but using the highest value possible (<=n_val) without running out of memory will speed up your training.
-max_epochs: 100000                                                                 # stop training after _ number of epochs, we set a very large number, as e.g. 1million and then just use early stopping and not train the full number of epochs
 train_val_split: random                                                            # can be random or sequential. if sequential, first n_train elements are training, next n_val are val, else random, usually random is the right choice
 shuffle: true                                                                      # if true, the data loader will shuffle the data, usually a good idea
 metrics_key: validation_loss                                                       # metrics used for scheduling and saving best model. Options: `set`_`quantity`, set can be either "train" or "validation, "quantity" can be loss or anything that appears in the validation batch step header, such as f_mae, f_rmse, e_mae, e_rmse
@@ -170,7 +168,6 @@ chemical_embedding_irreps_out: 32x0e                                            
 feature_irreps_hidden: 32x0o + 32x0e + 32x1o + 32x1e                              # irreps used for hidden features, here we go up to lmax=1, with even and odd parities; for more accurate but slower networks, use l=2 or higher, smaller number of features is faster
 irreps_edge_sh: 0e + 1o                                                           # irreps of the spherical harmonics used for edges. If a single integer, indicates the full SH up to L_max=that_integer
 conv_to_output_hidden_irreps_out: 16x0e                                           # irreps used in hidden layer of output block
-max_epochs: 150                                                                  # stop training after _ number of epochs, we set a very large number here, it won't take this long in practice and we will use early stopping instead
 
 num_layers: 3                                                                     # number of interaction blocks, we find 3-5 to work best
 max_epochs: 150                                                                  # stop training after _ number of epochs, we set a very large number here, it won't take this long in practice and we will use early stopping instead

@@ -34,6 +34,8 @@ matplotlib = "*"
 seaborn = "*"
 pandas = "*"
 ipykernel = "^6.29.5"
+rich = "^13.9.4"
+ipywidgets = "^8.1.5"
 
 [tool.poetry.scripts]
 nequip-train = "nequip.scripts.train:main"
