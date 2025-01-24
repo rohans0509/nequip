@@ -5,6 +5,7 @@ from e3nn import o3
 from typing import Dict, Any, List
 from itertools import product
 from src.settings import TOTAL_LAYERS
+from src.managers.logging_manager import LoggingManager
 
 def irreps(lvalue: int, num_features: int = 32, even: bool = False) -> str:
     """Generate irreps string for e3nn."""
@@ -17,19 +18,22 @@ def irreps(lvalue: int, num_features: int = 32, even: bool = False) -> str:
 class ConfigManager:
     def __init__(self, template_dir: str = "config_templates"):
         self.template_dir = Path(template_dir)
+        self.logger = LoggingManager()
     
-    @staticmethod
-    def load_config(config_path: str) -> Dict[str, Any]:
+    def load_config(self, config_path: str) -> Dict[str, Any]:
         """Load configuration from yaml file."""
+        self.logger.info(f"Loading config from: {config_path}")
+        
         with open(config_path, 'r') as stream:
             try:
-                return yaml.safe_load(stream)
+                config = yaml.safe_load(stream)
+                self.logger.log_dict(config, "Loaded Configuration")
+                return config
             except yaml.YAMLError as exc:
-                print(f"Error loading config: {exc}")
+                self.logger.error(f"Error loading config: {exc}")
                 return {}
 
-    @staticmethod
-    def save_config(config: Dict[str, Any], save_path: str) -> None:
+    def save_config(self, config: Dict[str, Any], save_path: str) -> None:
         """Save configuration to yaml file."""
         save_path = Path(save_path)
         save_path.parent.mkdir(parents=True, exist_ok=True)
@@ -38,7 +42,7 @@ class ConfigManager:
             try:
                 yaml.dump(config, stream, default_flow_style=False)
             except yaml.YAMLError as exc:
-                print(f"Error saving config: {exc}")
+                self.logger.error(f"Error saving config: {exc}")
 
     @staticmethod
     def update_config(config: Dict[str, Any], **kwargs) -> Dict[str, Any]:
@@ -49,9 +53,19 @@ class ConfigManager:
 
     def generate_layer_irreps(self, lmax: int, num_features: int, inv_layers: int) -> str:
         """Generate layer irreps string."""
+        params = {
+            "lmax": lmax,
+            "features": num_features,
+            "inv_layers": inv_layers
+        }
+        self.logger.log_dict(params, "Layer Irreps Parameters")
+        
         num_layers = TOTAL_LAYERS - inv_layers
         layer_irreps = [irreps(lvalue=lmax, num_features=num_features, even=False) 
                        for _ in range(num_layers)]
         layer_irreps += [irreps(lvalue=0, num_features=num_features, even=True) 
                         for _ in range(inv_layers)]
-        return ",".join(layer_irreps)
+        
+        result = ",".join(layer_irreps)
+        self.logger.success("Successfully generated layer irreps")
+        return result
