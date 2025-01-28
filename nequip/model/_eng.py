@@ -97,7 +97,7 @@ def EnergyModel(
     )
 
     num_layers = config.get("num_layers", 3)
-    print(f"num_layers: {num_layers}")
+    logging.info(f"num_layers: {num_layers}")
 
     layers = {
         # -- Encode --
@@ -147,6 +147,8 @@ def EnergyModel(
             out_field=AtomicDataDict.TOTAL_ENERGY_KEY,
         ),
     )
+
+    logging.info(f"layers: {layers}")
 
     return SequentialGraphNetwork.from_parameters(
         shared_params=config,
