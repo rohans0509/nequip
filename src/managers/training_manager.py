@@ -3,6 +3,7 @@ import subprocess
 from pathlib import Path
 from typing import Optional
 from src.managers.logging_manager import LoggingManager
+import sys
 
 class TrainingManager:
     def __init__(self, base_dir: str = "results"):
@@ -21,21 +22,27 @@ class TrainingManager:
         cmd = f"nequip-train {config_path}"
         try:
             self.logger.info("Training in progress...")
-            result = subprocess.run(cmd, shell=True, check=True, capture_output=True, text=True)
-            self.logger.success("Training completed successfully")
-            
-            if result.stdout:
-                self.logger.section("Training Output")
-                self.logger.info(result.stdout)
-            
+            # Use Popen to stream output in real-time
+            with subprocess.Popen(
+                cmd,
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.STDOUT,
+                text=True
+            ) as process:
+                for line in process.stdout:
+                    print(line, end='')  # Print to terminal
+                    self.logger.info(line.strip())  # Log the output
+                
+                process.wait()
+                if process.returncode == 0:
+                    self.logger.success("Training completed successfully")
+                else:
+                    self.logger.error(f"Training failed with return code {process.returncode}")
+                    raise subprocess.CalledProcessError(process.returncode, cmd)
+        
         except subprocess.CalledProcessError as e:
             self.logger.error(f"Training failed with error code {e.returncode}")
-            if e.stdout:
-                self.logger.section("Training Output Before Failure")
-                self.logger.info(e.stdout)
-            if e.stderr:
-                self.logger.section("Error Output")
-                self.logger.error(e.stderr)
             raise
         
         self.logger.divider()

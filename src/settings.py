@@ -16,7 +16,7 @@ PARAM_GRID = {
     'n_train': [100,200],
     'lmax': [2,4],
     'num_features': [16],
-    'max_epochs': [3],
+    'max_epochs': [30],
     'n_val': [74],
     'inv_layers': [1,2],
 }

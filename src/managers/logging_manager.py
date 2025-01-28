@@ -45,16 +45,20 @@ class LoggingManager:
         self.logger = logging.getLogger("rich")
 
     def info(self, message: str) -> None:
-        self.logger.info(Text(message, style="info"))
+        """Log info message with rich formatting."""
+        self.console.print(message)
 
     def warning(self, message: str) -> None:
-        self.logger.warning(Text(message, style="warning"))
+        """Log warning message with rich formatting."""
+        self.console.print(f"⚠️  {message}", style="warning")
 
     def error(self, message: str) -> None:
-        self.logger.error(Text(message, style="error"))
+        """Log error message with rich formatting."""
+        self.console.print(f"❌ {message}", style="error")
 
     def success(self, message: str) -> None:
-        self.logger.info(Text(message, style="success"))
+        """Log success message with rich formatting."""
+        self.console.print(f"✅ {message}", style="success")
 
     def create_progress(self) -> Progress:
         """Create an enhanced progress bar."""

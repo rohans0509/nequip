@@ -5,7 +5,7 @@ from nequip.data import AtomicDataset
 from nequip.data.transforms import TypeMapper
 from nequip.nn import GraphModuleMixin
 from nequip.utils import load_callable, instantiate
-
+import logging
 
 def model_from_config(
     config,
@@ -58,7 +58,7 @@ def model_from_config(
         load_callable(b, prefix="nequip.model")
         for b in config.get("model_builders", [])
     ]
-    print(f"builders: {builders}")
+    logging.info(f"builders: {builders}")
 
     model = None
 
