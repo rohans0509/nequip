@@ -92,12 +92,7 @@ class VisualizationManager:
 
     def plot_learning_curves(self, metric: str, epoch: int = -1):
         """
-        A 'legacy' style plot: For each run, parse n_train and lmax, 
-        then plot the chosen epoch's metric vs. n_train, grouped by lmax.
-
-        NOTE: This only accounts for n_train and lmax; 
-        other varying params (inv_layers, etc.) are ignored, 
-        which might confound results if they also vary.
+        Enhanced version of learning curves plot with better aesthetics.
         """
         self.logger.section(f"Plotting learning curves for metric='{metric}', epoch={epoch}")
         
@@ -149,25 +144,87 @@ class VisualizationManager:
             self.logger.warning("No data to plot for learning curves.")
             return
         
-        # Plot
+        # Create and sort DataFrame
         plot_df = pd.DataFrame(all_data)
         plot_df = plot_df.sort_values("n_train")
 
-        plt.figure(figsize=(10, 6))
-        for lmax_val in sorted(plot_df['lmax'].unique()):
-            subset = plot_df[plot_df['lmax'] == lmax_val]
-            plt.plot(subset['n_train'], subset['metric_value'], marker='o', label=f'lmax={lmax_val}')
+        # Set style
+        plt.style.use('seaborn-v0_8')
+        sns.set_style("whitegrid", {
+            'grid.linestyle': '--',
+            'grid.alpha': 0.3,
+            'axes.facecolor': 'white',
+            'axes.edgecolor': '#333333',
+            'axes.linewidth': 1.2,
+            'grid.color': '#CCCCCC',
+        })
 
-        plt.xscale('log')
-        plt.xlabel("Number of Training Examples")
-        plt.ylabel(metric.replace("_", " ").title())
-        plt.title(f"Learning Curves: {metric} (epoch={epoch})")
-        plt.legend(title='lmax')
+        # Create figure with good dimensions
+        fig, ax = plt.subplots(figsize=(12, 7))
+
+        # Define consistent colors for L_max values
+        lmax_values = sorted(plot_df['lmax'].unique())
+        color_palette = sns.color_palette("husl", n_colors=len(lmax_values))
+        lmax_color_dict = dict(zip(lmax_values, color_palette))
+
+        # Plot each L_max line
+        for lmax_val in lmax_values:
+            subset = plot_df[plot_df['lmax'] == lmax_val]
+            ax.plot(subset['n_train'], 
+                    subset['metric_value'], 
+                    marker='o',
+                    markersize=8,
+                    linewidth=2.5,
+                    label=f'L_max = {lmax_val}',
+                    color=lmax_color_dict[lmax_val])
+
+        # Configure axes
+        ax.set_xscale('log')
+        ax.grid(True, which='major', linewidth=0.8, alpha=0.3)
+        ax.grid(True, which='minor', linewidth=0.5, alpha=0.2)
         
-        # Save
+        # Format y-axis values
+        ax.yaxis.set_major_formatter(plt.FuncFormatter(
+            lambda x, p: f'{x:.1e}' if abs(x) >= 1000 else f'{x:.2f}'
+        ))
+
+        # Improve tick parameters
+        ax.tick_params(axis='both', which='major', labelsize=10, length=5)
+        ax.tick_params(axis='both', which='minor', length=3)
+
+        # Labels and title
+        ax.set_xlabel("Number of Training Examples", fontsize=12, labelpad=10)
+        ax.set_ylabel(metric.replace("_", " ").title(), fontsize=12, labelpad=10)
+        
+        title = f"Training {metric.replace('_', ' ').title()} vs Training Size"
+        if epoch != -1:
+            title += f"\n(Epoch {epoch})"
+        ax.set_title(title, pad=20, fontsize=14, fontweight='bold')
+
+        # Enhance legend
+        legend = ax.legend(
+            title="L_max",
+            title_fontsize=12,
+            fontsize=10,
+            bbox_to_anchor=(1.02, 0.5),
+            loc='center left',
+            frameon=True,
+            edgecolor='#CCCCCC'
+        )
+        legend.get_frame().set_facecolor('white')
+        legend.get_frame().set_alpha(0.9)
+
+        # Adjust layout to prevent label cutoff
+        plt.tight_layout()
+
+        # Save with high quality
         save_name = f"learning_curves_{metric}_epoch{epoch}.png"
         save_path = self.plots_dir / save_name
-        plt.savefig(save_path, dpi=300, bbox_inches='tight')
+        plt.savefig(save_path, 
+                    dpi=300, 
+                    bbox_inches='tight',
+                    facecolor='white',
+                    edgecolor='none')
         plt.close()
         self.logger.success(f"Plot saved to {save_path}")
 
@@ -268,25 +325,78 @@ class VisualizationManager:
                 self.logger.warning(f"Missing required column: {col}. Cannot plot.")
                 return
         
-        # 4. Create FacetGrid: columns = inv_layers, hue = lmax, x = n_train
+        # Modern style configuration
+        plt.style.use('seaborn-v0_8')  # Modern base style
+        sns.set_style("whitegrid", {
+            'grid.linestyle': '--',
+            'grid.alpha': 0.6,
+            'axes.facecolor': 'white',
+            'axes.grid': True,
+        })
+        
+        # Custom color palette - modern, professional colors
+        colors = ["#2ecc71", "#3498db", "#9b59b6", "#e74c3c", "#f1c40f", "#1abc9c"]
+        sns.set_palette(colors)
+
+        # Define a consistent color palette for L_max values
+        lmax_values = sorted(plot_df['lmax'].unique())
+        color_palette = sns.color_palette("husl", n_colors=len(lmax_values))
+        lmax_color_dict = dict(zip(lmax_values, color_palette))
+
+        # Create figure with explicit hue mapping
         g = sns.relplot(
             data=plot_df,
             x="n_train",
             y="metric_value",
             hue="lmax",
+            hue_order=lmax_values,  # Specify the order
+            palette=lmax_color_dict,  # Use our custom palette
             col="inv_layers",
             kind="line",
-            facet_kws={"sharey": False, "sharex": True}
+            height=6,
+            aspect=1.2,
+            marker="o",
+            markersize=10,
+            linewidth=2.5,
+            facet_kws={
+                "sharey": True,
+                "sharex": True,
+                "despine": False,
+            }
         )
-        g.set(xscale='log')
-        g.set_titles(col_template="inv_layers = {col_name}")
 
-        # Optional: a bit of a supertitle
+        # Enhance the plot aesthetics
+        g.set(xscale='log')
+        
+        # Improve titles and labels
+        g.set_titles(col_template="Invariant Layers: {col_name}", size=12, pad=15)
+        g.set_axis_labels("Number of Training Examples", metric.replace("_", " ").title())
+        
+        # Enhance legend
+        g._legend.set_title("lmax", prop={'size': 11, 'weight': 'bold'})
+        plt.setp(g._legend.get_texts(), fontsize=10)
+        
+        # Add a descriptive super title
         plt.suptitle(
-            f"{metric} vs. n_train\n(lmax colored, inv_layers faceted, epoch={epoch})",
-            y=1.02, fontsize=14
+            f"{metric.replace('_', ' ').title()} vs Training Size\n",
+            y=1.05, 
+            fontsize=14, 
+            fontweight='bold'
         )
-        plt.subplots_adjust(top=0.85)  # if suptitle overlaps
+
+        # Adjust layout
+        g.fig.subplots_adjust(top=0.85, wspace=0.3)
+
+        # Enhance each subplot
+        for ax in g.axes.flat:
+            # Improve tick labels
+            ax.tick_params(labelsize=10)
+            # Add subtle spines
+            for spine in ax.spines.values():
+                spine.set_color('#666666')
+                spine.set_linewidth(0.8)
+            # Improve grid
+            ax.grid(True, alpha=0.3, linestyle='--')
 
         # 5. Save figure
         filename = f"param_comparison_{metric}_epoch{epoch}.png"
@@ -297,42 +407,50 @@ class VisualizationManager:
 
     def visualize_results(self):
         """
-        Example method that shows how you might generate multiple plots
-        for your typical metrics. You can adapt or remove as needed.
+        Generate a comprehensive visualization suite with enhanced aesthetics.
         """
         self.logger.section("Visualization Suite Generation")
 
-        metrics = [
-            'training_loss',
-            'validation_loss',
-            'training_f_mae',
-            'validation_f_mae',
-            'training_e_mae',
-            'validation_e_mae'
-        ]
+        # Define metrics with more readable display names
+        metrics_config = {
+            'training_loss': 'Training Loss',
+            'validation_loss': 'Validation Loss',
+            'training_f_mae': 'Training Force MAE',
+            'validation_f_mae': 'Validation Force MAE',
+            'training_e_mae': 'Training Energy MAE',
+            'validation_e_mae': 'Validation Energy MAE'
+        }
 
-        self.logger.info(f"Generating plots for {len(metrics)} metrics...")
+        # Set global style configurations
+        plt.style.use('seaborn-v0_8')
+        sns.set_style("whitegrid", {
+            'grid.linestyle': '--',
+            'grid.alpha': 0.6,
+            'axes.facecolor': 'white',
+        })
+        
+        # Set modern color palette
+        colors = ["#2ecc71", "#3498db", "#9b59b6", "#e74c3c", "#f1c40f", "#1abc9c"]
+        sns.set_palette(colors)
 
-        # Possibly add a progress bar if you have a logging manager that supports it:
+        self.logger.info(f"Generating enhanced plots for {len(metrics_config)} metrics...")
+
         with self.logger.create_progress() as progress:
-            task = progress.add_task("[cyan]Generating plots...", total=len(metrics))
+            task = progress.add_task(
+                "[cyan]Generating publication-quality plots...", 
+                total=len(metrics_config)
+            )
             
-            for metric in metrics:
+            for metric, display_name in metrics_config.items():
                 try:
-                    # Example usage of the "legacy" style:
-                    self.plot_learning_curves(metric=metric, epoch=-1)
-                    
-                    # Example usage of the new param comparison approach:
-                    # Fix num_features = 16, max_epochs = 3 (as in your settings.py defaults)
                     self.plot_param_comparison(
                         metric=metric,
                         epoch=-1,
                         fixed_params={}
                     )
-                    
                 except Exception as e:
-                    self.logger.error(f"Failed to generate plots for {metric}: {str(e)}")
+                    self.logger.error(f"Failed to generate plots for {display_name}: {str(e)}")
                 
                 progress.advance(task)
 
-        self.logger.success("Visualization suite generation completed!")
+        self.logger.success("Enhanced visualization suite generation completed! 🎨")
