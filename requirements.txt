@@ -1,0 +1,17 @@
+scipy>=1.6.1
+numpy>=1.7
+ase
+tqdm
+torch>=1.10.0,!=1.12.0
+e3nn
+pyyaml
+typing-extensions
+torch-runstats
+torch-ema
+wandb
+matplotlib
+seaborn
+pandas
+ipykernel>=6.29.5
+rich>=13.9.4
+ipywidgets>=8.1.5 

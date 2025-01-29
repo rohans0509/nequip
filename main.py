@@ -6,6 +6,9 @@ from pathlib import Path
 import src.settings as settings
 from tqdm import tqdm
 
+from dotenv import load_dotenv
+
+load_dotenv()
 
 def main():
     # Initialize managers

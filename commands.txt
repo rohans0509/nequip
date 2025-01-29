@@ -1,0 +1,5 @@
+nohup python -u main.py &
+
+tail -f nohup.out
+
+ps aux | grep python | grep rsharma
