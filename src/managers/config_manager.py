@@ -60,11 +60,22 @@ class ConfigManager:
         }
         self.logger.log_dict(params, "Layer Irreps Parameters")
         
-        num_layers = TOTAL_LAYERS - inv_layers
-        layer_irreps = [irreps(lvalue=lmax, num_features=num_features, even=False) 
-                       for _ in range(num_layers)]
-        layer_irreps += [irreps(lvalue=0, num_features=num_features, even=True) 
-                        for _ in range(inv_layers)]
+        # If lmax is 0, the network is fully invariant.
+        # Override inv_layers to be TOTAL_LAYERS.
+        if lmax == 0:
+            self.logger.info("lmax=0 detected, building fully invariant network: setting inv_layers to TOTAL_LAYERS.")
+            inv_layers = TOTAL_LAYERS
+            num_layers = 0
+        else:
+            num_layers = TOTAL_LAYERS - inv_layers
+        
+        layer_irreps = []
+        if num_layers > 0:
+            layer_irreps.extend([irreps(lvalue=lmax, num_features=num_features, even=False) 
+                                 for _ in range(num_layers)])
+        # Always add the invariant layers.
+        layer_irreps.extend([irreps(lvalue=0, num_features=num_features, even=True) 
+                             for _ in range(inv_layers)])
         
         result = ",".join(layer_irreps)
         self.logger.success("Successfully generated layer irreps")

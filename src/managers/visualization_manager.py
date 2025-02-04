@@ -4,6 +4,7 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 from pathlib import Path
 from typing import Dict, List, Optional
+import numpy as np
 
 # Example logger import (make sure you have this in your codebase)
 from src.managers.logging_manager import LoggingManager
@@ -90,144 +91,6 @@ class VisualizationManager:
             return pd.read_csv(metrics_path, skipinitialspace=True)
         return pd.DataFrame()
 
-    def plot_learning_curves(self, metric: str, epoch: int = -1):
-        """
-        Enhanced version of learning curves plot with better aesthetics.
-        """
-        self.logger.section(f"Plotting learning curves for metric='{metric}', epoch={epoch}")
-        
-        run_dirs = [
-            d for d in self.version_dir.iterdir()
-            if d.is_dir() and d.name not in
-               ['configs', 'logs', 'metrics', 'plots', 'checkpoints']
-               and ("processed_dataset" not in d.name)
-        ]
-
-        all_data = []
-        for run_dir in run_dirs:
-            metrics_df = self._load_metrics(run_dir)
-            if metrics_df.empty:
-                self.logger.warning(f"No metrics found for {run_dir.name}")
-                continue
-            if metric not in metrics_df.columns:
-                self.logger.warning(f"Metric '{metric}' not in {run_dir.name}")
-                continue
-            
-            # Pick the row for the chosen epoch
-            if epoch == -1:
-                row_idx = -1
-            else:
-                if epoch >= len(metrics_df):
-                    self.logger.warning(f"Epoch {epoch} out of range in {run_dir.name}")
-                    continue
-                row_idx = epoch
-
-            # Parse run params
-            params = self._parse_run_name(run_dir.name)
-            if 'n_train' not in params or 'lmax' not in params:
-                self.logger.warning(f"Skipping run_dir '{run_dir.name}' because 'n_train' or 'lmax' not found")
-                continue
-            
-            # Build row data
-            try:
-                row_data = {
-                    'n_train': int(params['n_train']),
-                    'lmax': int(params['lmax']),
-                    'metric_value': metrics_df.iloc[row_idx][metric]
-                }
-                all_data.append(row_data)
-            except ValueError:
-                self.logger.warning(f"Could not parse numeric param from {run_dir.name}")
-                continue
-
-        if not all_data:
-            self.logger.warning("No data to plot for learning curves.")
-            return
-        
-        # Create and sort DataFrame
-        plot_df = pd.DataFrame(all_data)
-        plot_df = plot_df.sort_values("n_train")
-
-        # Set style
-        plt.style.use('seaborn-v0_8')
-        sns.set_style("whitegrid", {
-            'grid.linestyle': '--',
-            'grid.alpha': 0.3,
-            'axes.facecolor': 'white',
-            'axes.edgecolor': '#333333',
-            'axes.linewidth': 1.2,
-            'grid.color': '#CCCCCC',
-        })
-
-        # Create figure with good dimensions
-        fig, ax = plt.subplots(figsize=(12, 7))
-
-        # Define consistent colors for L_max values
-        lmax_values = sorted(plot_df['lmax'].unique())
-        color_palette = sns.color_palette("husl", n_colors=len(lmax_values))
-        lmax_color_dict = dict(zip(lmax_values, color_palette))
-
-        # Plot each L_max line
-        for lmax_val in lmax_values:
-            subset = plot_df[plot_df['lmax'] == lmax_val]
-            ax.plot(subset['n_train'], 
-                    subset['metric_value'], 
-                    marker='o',
-                    markersize=8,
-                    linewidth=2.5,
-                    label=f'L_max = {lmax_val}',
-                    color=lmax_color_dict[lmax_val])
-
-        # Configure axes
-        ax.set_xscale('log')
-        ax.grid(True, which='major', linewidth=0.8, alpha=0.3)
-        ax.grid(True, which='minor', linewidth=0.5, alpha=0.2)
-        
-        # Format y-axis values
-        ax.yaxis.set_major_formatter(plt.FuncFormatter(
-            lambda x, p: f'{x:.1e}' if abs(x) >= 1000 else f'{x:.2f}'
-        ))
-
-        # Improve tick parameters
-        ax.tick_params(axis='both', which='major', labelsize=10, length=5)
-        ax.tick_params(axis='both', which='minor', length=3)
-
-        # Labels and title
-        ax.set_xlabel("Number of Training Examples", fontsize=12, labelpad=10)
-        ax.set_ylabel(metric.replace("_", " ").title(), fontsize=12, labelpad=10)
-        
-        title = f"Training {metric.replace('_', ' ').title()} vs Training Size"
-        if epoch != -1:
-            title += f"\n(Epoch {epoch})"
-        ax.set_title(title, pad=20, fontsize=14, fontweight='bold')
-
-        # Enhance legend
-        legend = ax.legend(
-            title="L_max",
-            title_fontsize=12,
-            fontsize=10,
-            bbox_to_anchor=(1.02, 0.5),
-            loc='center left',
-            frameon=True,
-            edgecolor='#CCCCCC'
-        )
-        legend.get_frame().set_facecolor('white')
-        legend.get_frame().set_alpha(0.9)
-
-        # Adjust layout to prevent label cutoff
-        plt.tight_layout()
-
-        # Save with high quality
-        save_name = f"learning_curves_{metric}_epoch{epoch}.png"
-        save_path = self.plots_dir / save_name
-        plt.savefig(save_path, 
-                    dpi=300, 
-                    bbox_inches='tight',
-                    facecolor='white',
-                    edgecolor='none')
-        plt.close()
-        self.logger.success(f"Plot saved to {save_path}")
-
     def plot_param_comparison(self,
                               metric: str,
                               epoch: int = -1,
@@ -253,6 +116,12 @@ class VisualizationManager:
             fixed_params = {}
 
         self.logger.section(f"Plot Param Comparison for metric='{metric}' (epoch={epoch})")
+
+        # Import expected parameter ranges
+        from src.settings import PARAM_GRID
+        expected_lmax = sorted(PARAM_GRID['lmax'])
+        expected_n_train = sorted(PARAM_GRID['n_train'])
+        expected_inv_layers = sorted(PARAM_GRID['inv_layers'])
 
         # 1. Collect run directories
         run_dirs = [
@@ -319,12 +188,23 @@ class VisualizationManager:
         # 3. DataFrame for plotting
         plot_df = pd.DataFrame(all_data)
         
-        # Ensure necessary columns exist
-        for col in ['n_train', 'lmax', 'inv_layers', 'metric_value']:
-            if col not in plot_df.columns:
-                self.logger.warning(f"Missing required column: {col}. Cannot plot.")
-                return
-        
+        # Check for missing configurations
+        actual_lmax = sorted(plot_df['lmax'].unique())
+        actual_n_train = sorted(plot_df['n_train'].unique())
+        actual_inv_layers = sorted(plot_df['inv_layers'].unique())
+
+        # Log any missing configurations
+        missing_lmax = set(expected_lmax) - set(actual_lmax)
+        missing_n_train = set(expected_n_train) - set(actual_n_train)
+        missing_inv_layers = set(expected_inv_layers) - set(actual_inv_layers)
+
+        if missing_lmax:
+            self.logger.warning(f"Missing data for L values: {missing_lmax}")
+        if missing_n_train:
+            self.logger.warning(f"Missing data for n_train values: {missing_n_train}")
+        if missing_inv_layers:
+            self.logger.warning(f"Missing data for inv_layers values: {missing_inv_layers}")
+
         # Modern style configuration
         plt.style.use('seaborn-v0_8')  # Modern base style
         sns.set_style("whitegrid", {
@@ -338,43 +218,67 @@ class VisualizationManager:
         colors = ["#2ecc71", "#3498db", "#9b59b6", "#e74c3c", "#f1c40f", "#1abc9c"]
         sns.set_palette(colors)
 
-        # Define a consistent color palette for L_max values
-        lmax_values = sorted(plot_df['lmax'].unique())
-        color_palette = sns.color_palette("husl", n_colors=len(lmax_values))
-        lmax_color_dict = dict(zip(lmax_values, color_palette))
+        # Use expected_lmax for color palette instead of just available values
+        color_palette = sns.color_palette("husl", n_colors=len(expected_lmax))
+        lmax_color_dict = dict(zip(expected_lmax, color_palette))
 
-        # Create figure with explicit hue mapping
-        g = sns.relplot(
-            data=plot_df,
+        def plot_with_fit(data, x, y, hue, color, **kwargs):
+            # Iterate over each unique l value
+            for l_val in sorted(data[hue].unique()):
+                current_color = color.get(l_val, "black")  # Get the specific color for the current l value
+                mask = data[hue] == l_val  # Filter data for current l value
+                x_data = np.log10(data[mask][x])
+                y_data = data[mask][y]
+                
+                # Plot scatter points for current l value
+                plt.scatter(data[mask][x], y_data, color=current_color, alpha=0.6)
+                
+                # Only compute a line if there's enough data (more than one point)
+                if len(x_data) > 1:
+                    # Perform linear regression on log-transformed data for the current l value
+                    slope, intercept = np.polyfit(x_data, np.log10(y_data), 1)
+                    x_fit = np.logspace(
+                        np.log10(min(data[mask][x])), 
+                        np.log10(max(data[mask][x])), 
+                        100
+                    )
+                    y_fit = 10**(slope * np.log10(x_fit) + intercept)
+                    
+                    # Plot the best fit line for current l value
+                    plt.plot(
+                        x_fit, y_fit, color=current_color, 
+                        label=f'L={l_val} (slope={slope:.2f})'
+                    )
+
+        # Create FacetGrid
+        g = sns.FacetGrid(
+            plot_df,
+            col="inv_layers",
+            height=6,
+            aspect=1.2,
+            sharey=True,
+            sharex=True
+        )
+
+        # Apply the plotting function
+        g.map_dataframe(
+            plot_with_fit,
             x="n_train",
             y="metric_value",
             hue="lmax",
-            hue_order=lmax_values,  # Specify the order
-            palette=lmax_color_dict,  # Use our custom palette
-            col="inv_layers",
-            kind="line",
-            height=6,
-            aspect=1.2,
-            marker="o",
-            markersize=10,
-            linewidth=2.5,
-            facet_kws={
-                "sharey": True,
-                "sharex": True,
-                "despine": False,
-            }
+            color=lmax_color_dict
         )
 
+        # Set scales and labels
+        for ax in g.axes.flat:
+            ax.set_xscale('log')
+            ax.set_yscale('log')
+            ax.grid(True, alpha=0.3, linestyle='--')
+            ax.legend(title="L value (power law fit)", bbox_to_anchor=(1.05, 1))
+
         # Enhance the plot aesthetics
-        g.set(xscale='log')
-        
-        # Improve titles and labels
         g.set_titles(col_template="Invariant Layers: {col_name}", size=12, pad=15)
         g.set_axis_labels("Number of Training Examples", metric.replace("_", " ").title())
-        
-        # Enhance legend
-        g._legend.set_title("lmax", prop={'size': 11, 'weight': 'bold'})
-        plt.setp(g._legend.get_texts(), fontsize=10)
         
         # Add a descriptive super title
         plt.suptitle(
@@ -404,6 +308,543 @@ class VisualizationManager:
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
         plt.close()
         self.logger.success(f"Saved comparison plot to {save_path}")
+
+    def plot_training_time_scaling(self,
+                             epoch: int = -1,
+                             fixed_params: Optional[Dict[str, str]] = None):
+        """
+        [RENAMED from plot_wall_time_comparison]
+        Plot how training time scales with dataset size across different model configurations.
+        """
+        if fixed_params is None:
+            fixed_params = {}
+
+        self.logger.section(f"Plot Training Time Scaling (epoch={epoch})")
+
+        # 1. Collect run directories (same as before)
+        run_dirs = [
+            d for d in self.version_dir.iterdir() 
+            if d.is_dir() and d.name not in 
+               ['configs', 'logs', 'metrics', 'plots', 'checkpoints'] 
+               and ("processed_dataset" not in d.name)
+        ]
+
+        # 2. Parse data
+        all_data = []
+        for run_dir in run_dirs:
+            metrics_df = self._load_metrics(run_dir)
+            if metrics_df.empty or 'wall' not in metrics_df.columns:
+                continue
+
+            # Choose epoch row
+            if epoch == -1:
+                row_idx = -1
+            else:
+                if epoch >= len(metrics_df):
+                    continue
+                row_idx = epoch
+            
+            params = self._parse_run_name(run_dir.name)
+
+            # Check fixed params
+            if not all(params.get(k) == v for k, v in fixed_params.items()):
+                continue
+
+            # Build row data
+            row_data = {
+                'wall_time': metrics_df.iloc[row_idx]['wall'],  # Time in seconds
+            }
+            for p_name, p_val in params.items():
+                if p_name in ['n_train','lmax','inv_layers']:
+                    try:
+                        row_data[p_name] = int(p_val)
+                    except ValueError:
+                        continue
+                else:
+                    row_data[p_name] = p_val
+            all_data.append(row_data)
+
+        if not all_data:
+            self.logger.warning("No data left after filtering; nothing to plot.")
+            return
+
+        # 3. Create DataFrame
+        plot_df = pd.DataFrame(all_data)
+        
+        # Modern style configuration
+        plt.style.use('seaborn-v0_8')
+        sns.set_style("whitegrid", {
+            'grid.linestyle': '--',
+            'grid.alpha': 0.6,
+            'axes.facecolor': 'white',
+        })
+
+        # Define color palette for L_max values
+        lmax_values = sorted(plot_df['lmax'].unique())
+        color_palette = sns.color_palette("husl", n_colors=len(lmax_values))
+        lmax_color_dict = dict(zip(lmax_values, color_palette))
+
+        # Create plot
+        g = sns.relplot(
+            data=plot_df,
+            x="n_train",
+            y="wall_time",
+            hue="lmax",
+            hue_order=lmax_values,
+            palette=lmax_color_dict,
+            col="inv_layers",
+            kind="line",
+            height=6,
+            aspect=1.2,
+            marker="o",
+            markersize=10,
+            linewidth=2.5,
+            facet_kws={
+                "sharey": True,
+                "sharex": True,
+                "despine": False,
+            }
+        )
+
+        # Customize plot
+        g.set(xscale='log')
+        g.set_titles(col_template="Invariant Layers: {col_name}", size=12, pad=15)
+        g.set_axis_labels("Number of Training Examples", "Wall Clock Time (seconds)")
+        
+        g._legend.set_title("L_max", prop={'size': 11, 'weight': 'bold'})
+        plt.setp(g._legend.get_texts(), fontsize=10)
+        
+        plt.suptitle(
+            f"Training Time vs Dataset Size\n",
+            y=1.05, 
+            fontsize=14, 
+            fontweight='bold'
+        )
+
+        # Enhance subplots
+        for ax in g.axes.flat:
+            ax.tick_params(labelsize=10)
+            for spine in ax.spines.values():
+                spine.set_color('#666666')
+                spine.set_linewidth(0.8)
+            ax.grid(True, alpha=0.3, linestyle='--')
+
+        # Save figure
+        filename = f"training_time_scaling_epoch{epoch}.png"
+        save_path = self.plots_dir / filename
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+        self.logger.success(f"Saved training time scaling plot to {save_path}")
+
+    def plot_epoch_time_breakdown(self, epoch: int = -1):
+        """
+        Create stacked bar visualization showing time breakdown per configuration.
+        
+        Shows:
+        - Average time per epoch for each configuration
+        - Grouped by training set size (n_train)
+        - Stacked by angular momentum (lmax)
+        - Separate charts for different numbers of invariant layers
+        """
+        run_dirs = [
+            d for d in self.version_dir.iterdir() 
+            if d.is_dir() and d.name not in 
+               ['configs', 'logs', 'metrics', 'plots', 'checkpoints'] 
+               and ("processed_dataset" not in d.name)
+        ]
+
+        all_data = []
+        for run_dir in run_dirs:
+            metrics_df = self._load_metrics(run_dir)
+            if metrics_df.empty or 'wall' not in metrics_df.columns:
+                continue
+
+            params = self._parse_run_name(run_dir.name)
+            
+            # Calculate time per epoch
+            if epoch == -1:
+                total_time = metrics_df.iloc[-1]['wall']
+                num_epochs = len(metrics_df)
+            else:
+                if epoch >= len(metrics_df):
+                    continue
+                total_time = metrics_df.iloc[epoch]['wall']
+                num_epochs = epoch + 1
+
+            time_per_epoch = total_time / num_epochs
+            
+            row_data = {
+                'time_per_epoch': time_per_epoch,
+                **{k: int(v) if k in ['n_train', 'lmax', 'inv_layers'] else v 
+                   for k, v in params.items()}
+            }
+            all_data.append(row_data)
+
+        if not all_data:
+            self.logger.warning("No data available for plotting.")
+            return
+
+        plot_df = pd.DataFrame(all_data)
+
+        # Create subplot for each inv_layers value with shared y-axis
+        inv_layers_values = sorted(plot_df['inv_layers'].unique())
+        fig, axes = plt.subplots(1, len(inv_layers_values), 
+                                figsize=(6*len(inv_layers_values), 8),
+                                sharey=True)  # Add sharey=True here
+        if len(inv_layers_values) == 1:
+            axes = [axes]
+
+        # Color palette for lmax values
+        lmax_values = sorted(plot_df['lmax'].unique())
+        colors = sns.color_palette("husl", n_colors=len(lmax_values))
+
+        # Calculate global max y value for consistent scaling
+        max_y = 0
+        for inv_layers in inv_layers_values:
+            data = plot_df[plot_df['inv_layers'] == inv_layers]
+            layer_max = 0
+            for lmax in lmax_values:
+                lmax_data = data[data['lmax'] == lmax].groupby('n_train')['time_per_epoch'].mean()
+                layer_max += lmax_data.max() if not lmax_data.empty else 0
+            max_y = max(max_y, layer_max)
+
+        for ax, inv_layers in zip(axes, inv_layers_values):
+            data = plot_df[plot_df['inv_layers'] == inv_layers]
+            
+            # Create stacked bars
+            bottom = np.zeros(len(data['n_train'].unique()))
+            for lmax, color in zip(lmax_values, colors):
+                lmax_data = data[data['lmax'] == lmax].groupby('n_train')['time_per_epoch'].mean()
+                ax.bar(lmax_data.index.astype(str), lmax_data.values, 
+                      bottom=bottom, label=f'L={lmax}', color=color)
+                bottom += lmax_data.values
+
+            ax.set_title(f'Invariant Layers: {inv_layers}')
+            ax.set_xlabel('Training Set Size')
+            if ax == axes[0]:  # Only set ylabel for first subplot
+                ax.set_ylabel('Time per Epoch (seconds)')
+            ax.tick_params(axis='x', rotation=45)
+            ax.set_ylim(0, max_y * 1.1)  # Set consistent y limit with 10% padding
+
+        plt.legend(title='Angular Momentum (L)', bbox_to_anchor=(1.05, 1), loc='upper left')
+        plt.tight_layout()
+        
+        save_path = self.plots_dir / f'epoch_time_breakdown_epoch{epoch}.png'
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+        self.logger.success(f"Saved epoch time breakdown plot to {save_path}")
+
+    def plot_computational_efficiency_heatmap(self, epoch: int = -1):
+        """
+        Create heatmap visualization showing computational efficiency across configurations.
+        
+        Shows:
+        - Heatmap of time per training sample
+        - X-axis: Angular momentum (lmax)
+        - Y-axis: Training set size (n_train)
+        - Separate plots for different numbers of invariant layers
+        - Color intensity: Time per sample (darker = more time)
+        """
+        run_dirs = [
+            d for d in self.version_dir.iterdir() 
+            if d.is_dir() and d.name not in 
+               ['configs', 'logs', 'metrics', 'plots', 'checkpoints'] 
+               and ("processed_dataset" not in d.name)
+        ]
+
+        all_data = []
+        for run_dir in run_dirs:
+            metrics_df = self._load_metrics(run_dir)
+            if metrics_df.empty or 'wall' not in metrics_df.columns:
+                continue
+
+            params = self._parse_run_name(run_dir.name)
+            
+            # Calculate time per sample
+            if epoch == -1:
+                total_time = metrics_df.iloc[-1]['wall']
+            else:
+                if epoch >= len(metrics_df):
+                    continue
+                total_time = metrics_df.iloc[epoch]['wall']
+            
+            n_train = int(params.get('n_train', 0))
+            if n_train > 0:
+                time_per_sample = total_time / n_train
+                row_data = {
+                    'time_per_sample': time_per_sample,
+                    **{k: int(v) if k in ['n_train', 'lmax', 'inv_layers'] else v 
+                       for k, v in params.items()}
+                }
+                all_data.append(row_data)
+
+        if not all_data:
+            self.logger.warning("No data available for plotting.")
+            return
+
+        plot_df = pd.DataFrame(all_data)
+
+        # Create heatmap for each inv_layers value
+        inv_layers_values = sorted(plot_df['inv_layers'].unique())
+        fig, axes = plt.subplots(1, len(inv_layers_values), 
+                                figsize=(6*len(inv_layers_values), 8))
+        if len(inv_layers_values) == 1:
+            axes = [axes]
+
+        for ax, inv_layers in zip(axes, inv_layers_values):
+            data = plot_df[plot_df['inv_layers'] == inv_layers]
+            
+            # Pivot data for heatmap
+            heatmap_data = data.pivot(
+                index='n_train', 
+                columns='lmax', 
+                values='time_per_sample'
+            )
+            
+            # Plot heatmap
+            sns.heatmap(heatmap_data, ax=ax, 
+                        cmap='YlOrRd', 
+                        annot=True, 
+                        fmt='.2e',
+                        cbar_kws={'label': 'Time per Sample (s)'})
+            
+            ax.set_title(f'Invariant Layers: {inv_layers}')
+            ax.set_xlabel('Angular Momentum (L)')
+            ax.set_ylabel('Training Set Size')
+
+        plt.tight_layout()
+        
+        save_path = self.plots_dir / f'computational_efficiency_heatmap_epoch{epoch}.png'
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+        self.logger.success(f"Saved computational efficiency heatmap to {save_path}")
+
+    def plot_accuracy_vs_compute_tradeoff(self, 
+                                        metric: str = 'validation_f_mae',
+                                        epoch: int = -1):
+        """
+        Create scatter plot showing accuracy vs computational cost trade-off.
+        
+        Shows:
+        - X-axis: Wall clock time
+        - Y-axis: Chosen validation metric
+        - Point size: Training set size
+        - Point color: Angular momentum (lmax)
+        - Point shape: Number of invariant layers
+        - Helps identify optimal configurations balancing accuracy and computational cost
+        
+        Args:
+            metric: Validation metric to plot (e.g., 'validation_f_mae', 'validation_loss')
+            epoch: Which epoch to analyze (-1 for final epoch)
+        """
+        run_dirs = [
+            d for d in self.version_dir.iterdir() 
+            if d.is_dir() and d.name not in 
+               ['configs', 'logs', 'metrics', 'plots', 'checkpoints'] 
+               and ("processed_dataset" not in d.name)
+        ]
+
+        all_data = []
+        for run_dir in run_dirs:
+            metrics_df = self._load_metrics(run_dir)
+            if metrics_df.empty or 'wall' not in metrics_df.columns or metric not in metrics_df.columns:
+                continue
+
+            params = self._parse_run_name(run_dir.name)
+            
+            # Get metric and time values
+            if epoch == -1:
+                row_idx = -1
+            else:
+                if epoch >= len(metrics_df):
+                    continue
+                row_idx = epoch
+                
+            row_data = {
+                'wall_time': metrics_df.iloc[row_idx]['wall'],
+                'metric_value': metrics_df.iloc[row_idx][metric],
+                **{k: int(v) if k in ['n_train', 'lmax', 'inv_layers'] else v 
+                   for k, v in params.items()}
+            }
+            all_data.append(row_data)
+
+        if not all_data:
+            self.logger.warning("No data available for plotting.")
+            return
+
+        plot_df = pd.DataFrame(all_data)
+
+        # Create scatter plot
+        plt.figure(figsize=(12, 8))
+        
+        # Color scheme for lmax values
+        lmax_values = sorted(plot_df['lmax'].unique())
+        colors = sns.color_palette("husl", n_colors=len(lmax_values))
+        
+        # Markers for inv_layers
+        markers = ['o', 's', '^', 'D', 'v']
+        inv_layers_values = sorted(plot_df['inv_layers'].unique())
+        
+        # Plot points
+        for inv_layers, marker in zip(inv_layers_values, markers):
+            for lmax, color in zip(lmax_values, colors):
+                mask = (plot_df['inv_layers'] == inv_layers) & (plot_df['lmax'] == lmax)
+                data = plot_df[mask]
+                
+                plt.scatter(data['wall_time'], 
+                           data['metric_value'],
+                           s=data['n_train']/10,  # Scale point size
+                           c=[color],
+                           marker=marker,
+                           alpha=0.7,
+                           label=f'L={lmax}, Inv={inv_layers}')
+
+        plt.xscale('log')
+        plt.yscale('log')
+        plt.xlabel('Wall Clock Time (s)')
+        plt.ylabel(metric.replace('_', ' ').title())
+        plt.title('Accuracy vs Computational Cost Trade-off')
+        
+        # Add legend
+        plt.legend(title='Configuration', bbox_to_anchor=(1.05, 1), loc='upper left')
+        
+        # Add grid
+        plt.grid(True, which="both", ls="-", alpha=0.2)
+        
+        save_path = self.plots_dir / f'accuracy_compute_tradeoff_{metric}_epoch{epoch}.png'
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+        self.logger.success(f"Saved accuracy vs compute trade-off plot to {save_path}")
+
+    def plot_slope_vs_inv_layers(self, metric: str = 'validation_loss', epoch: int = -1):
+        """
+        Create a plot showing how the regression slope of log(metric) versus log(n_train)
+        evolves as the number of invariant layers changes. For each combination of (inv_layers, lmax),
+        a linear regression is computed across different training set sizes (n_train). The slopes
+        are then averaged over different lmax values for each inv_layers group. If available, a base
+        case for 0 invariant layers is included on the x-axis.
+
+        Args:
+            metric: The metric to analyze (default 'validation_loss').
+            epoch: Which epoch to use for metric extraction (-1 for the final epoch).
+        """
+        self.logger.section(f"Plotting Slope vs Invariant Layers for metric='{metric}' (epoch={epoch})")
+
+        # 1. Collect the run directories (similar filtering as in other plotting methods)
+        run_dirs = [
+            d for d in self.version_dir.iterdir() 
+            if d.is_dir() and d.name not in ['configs', 'logs', 'metrics', 'plots', 'checkpoints'] 
+               and ("processed_dataset" not in d.name)
+        ]
+        if not run_dirs:
+            self.logger.warning("No run directories found for slope analysis.")
+            return
+
+        # 2. Gather one data point per run: extract n_train, inv_layers, lmax and metric value.
+        data_points = []
+        for run_dir in run_dirs:
+            metrics_df = self._load_metrics(run_dir)
+            if metrics_df.empty or metric not in metrics_df.columns:
+                self.logger.warning(f"Skipping {run_dir.name}: missing metric data.")
+                continue
+
+            # Choose the row for the desired epoch (default final epoch)
+            if epoch == -1:
+                row_idx = -1
+            else:
+                if epoch >= len(metrics_df):
+                    self.logger.warning(f"Epoch {epoch} out of range in {run_dir.name}.")
+                    continue
+                row_idx = epoch
+
+            params = self._parse_run_name(run_dir.name)
+
+            try:
+                n_train = int(params.get('n_train', 0))
+                inv_layers = int(params.get('inv_layers', -1))
+                lmax = int(params.get('lmax', -1))
+            except ValueError:
+                self.logger.warning(f"Non-integer parameter encountered in {run_dir.name}")
+                continue
+
+            if n_train <= 0 or inv_layers < 0 or lmax < 0:
+                self.logger.warning(f"Incomplete parameter set in {run_dir.name}")
+                continue
+
+            data_points.append({
+                'n_train': n_train,
+                'inv_layers': inv_layers,
+                'lmax': lmax,
+                'metric_value': metrics_df.iloc[row_idx][metric]
+            })
+
+        if not data_points:
+            self.logger.warning("No valid data points were collected for slope analysis.")
+            return
+
+        df = pd.DataFrame(data_points)
+
+        # 3. For each (inv_layers, lmax) group, if there is variation in n_train, compute a regression
+        # of log10(metric_value) vs. log10(n_train) to estimate the slope.
+        slope_records = []
+        grouped = df.groupby(['inv_layers', 'lmax'])
+        for (inv_layers, lmax), group in grouped:
+            if group['n_train'].nunique() < 2:
+                self.logger.warning(f"Not enough n_train variations for inv_layers={inv_layers}, lmax={lmax}")
+                continue
+
+            x = np.log10(group['n_train'])
+            y = np.log10(group['metric_value'])
+            slope, intercept = np.polyfit(x, y, 1)
+            slope_records.append({
+                'inv_layers': inv_layers,
+                'lmax': lmax,
+                'slope': slope
+            })
+
+        if not slope_records:
+            self.logger.warning("No slopes computed; insufficient data across run groups.")
+            return
+
+        slope_df = pd.DataFrame(slope_records)
+
+        # 4. Average slopes for each unique number of invariant layers (grouping over lmax)
+        summary = slope_df.groupby('inv_layers').agg(
+            avg_slope=('slope', 'mean'),
+            std_slope=('slope', 'std'),
+            count=('slope', 'count')
+        ).reset_index()
+
+        # 5. Ensure the base case (0 invariant layers) is included
+        if 0 not in summary['inv_layers'].values:
+            # Note: if no data is available for 0 invariant layers, we add a row with NaN values.
+            base_case = pd.DataFrame([{'inv_layers': 0, 'avg_slope': np.nan, 'std_slope': np.nan, 'count': 0}])
+            summary = pd.concat([base_case, summary], ignore_index=True)
+            summary = summary.sort_values('inv_layers')
+
+        # 6. Plot average slope (with error bars) versus number of invariant layers.
+        plt.figure(figsize=(8, 6))
+        plt.errorbar(
+            summary['inv_layers'],
+            summary['avg_slope'],
+            yerr=summary['std_slope'],
+            fmt='-o',
+            markersize=8,
+            capsize=5,
+            label="Averaged over different lmax values"
+        )
+        plt.xlabel("Number of Invariant Layers")
+        plt.ylabel("Slope (log(metric) vs. log(n_train))")
+        plt.title(f"Evolution of Slope vs. Invariant Layers\nMetric: {metric}, Epoch: {epoch if epoch != -1 else 'Final'}")
+        plt.grid(True, alpha=0.3)
+        plt.legend()
+
+        # 7. Save the figure
+        filename = f"slope_vs_invariant_layers_{metric}_epoch{epoch}.png"
+        save_path = self.plots_dir / filename
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+        self.logger.success(f"Saved slope vs. invariant layers plot to {save_path}")
 
     def visualize_results(self):
         """

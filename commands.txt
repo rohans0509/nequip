@@ -3,3 +3,7 @@ nohup python -u main.py &
 tail -f nohup.out
 
 ps aux | grep python | grep rsharma
+
+1689744
+2228893
+3016962
