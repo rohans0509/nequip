@@ -1,0 +1,11 @@
+Paper which irreps are necessary/used
+Average across multiple runs
+
+Datasets
+TM25 - paper might involve higher L is there a dataset that is tractable?
+
+2 layers why? Turn off parity and see if it changes?
+
+Look up more papers  for questions - question is where do you need equivariance particularlyt when you're predicting invariant stuff.
+
+Inference Speed?
