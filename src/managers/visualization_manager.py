@@ -719,28 +719,43 @@ class VisualizationManager:
     def plot_slope_vs_inv_layers(self, metric: str = 'validation_loss', epoch: int = -1):
         """
         Create a plot showing how the regression slope of log(metric) versus log(n_train)
-        evolves as the number of invariant layers changes. For each combination of (inv_layers, lmax),
-        a linear regression is computed across different training set sizes (n_train). The slopes
-        are then averaged over different lmax values for each inv_layers group. If available, a base
-        case for 0 invariant layers is included on the x-axis.
+        evolves as the network transitions from fully invariant to partially invariant configurations.
+        
+        For runs with lmax==0 (fully invariant), we set the effective number of equivariant layers to 0 
+        (base case). For runs with lmax > 0, the effective number of equivariant layers is computed as:
+        
+            num_equivariant = TOTAL_LAYERS - inv_layers
 
+        This way, the x-axis (labeled as "Number of Equivariant Layers") is 0 for the fully invariant model,
+        and increases as fewer layers become invariant.
+        
+        The slope is computed via linear regression in the log-log domain for each group of runs (grouped by the
+        computed number of equivariant layers) provided that there is sufficient variation in training set size.
+        
         Args:
             metric: The metric to analyze (default 'validation_loss').
             epoch: Which epoch to use for metric extraction (-1 for the final epoch).
         """
-        self.logger.section(f"Plotting Slope vs Invariant Layers for metric='{metric}' (epoch={epoch})")
+        import numpy as np
+        import matplotlib.pyplot as plt
+        import pandas as pd
+        from src.settings import TOTAL_LAYERS
 
-        # 1. Collect the run directories (similar filtering as in other plotting methods)
+        self.logger.section(f"Plotting Slope vs Equivariant Layers for metric='{metric}' (epoch={epoch})")
+
+        # Collect run directories (excluding non-run folders)
         run_dirs = [
-            d for d in self.version_dir.iterdir() 
-            if d.is_dir() and d.name not in ['configs', 'logs', 'metrics', 'plots', 'checkpoints'] 
+            d for d in self.version_dir.iterdir()
+            if d.is_dir() and d.name not in ['configs', 'logs', 'metrics', 'plots', 'checkpoints']
                and ("processed_dataset" not in d.name)
         ]
         if not run_dirs:
             self.logger.warning("No run directories found for slope analysis.")
             return
 
-        # 2. Gather one data point per run: extract n_train, inv_layers, lmax and metric value.
+        # Gather data points with effective number of equivariant layers.
+        # For lmax==0 (fully invariant), we set num_equivariant = 0.
+        # For lmax > 0, compute num_equivariant = TOTAL_LAYERS - inv_layers.
         data_points = []
         for run_dir in run_dirs:
             metrics_df = self._load_metrics(run_dir)
@@ -748,7 +763,6 @@ class VisualizationManager:
                 self.logger.warning(f"Skipping {run_dir.name}: missing metric data.")
                 continue
 
-            # Choose the row for the desired epoch (default final epoch)
             if epoch == -1:
                 row_idx = -1
             else:
@@ -758,7 +772,6 @@ class VisualizationManager:
                 row_idx = epoch
 
             params = self._parse_run_name(run_dir.name)
-
             try:
                 n_train = int(params.get('n_train', 0))
                 inv_layers = int(params.get('inv_layers', -1))
@@ -771,10 +784,15 @@ class VisualizationManager:
                 self.logger.warning(f"Incomplete parameter set in {run_dir.name}")
                 continue
 
+            # For fully invariant configurations (lmax==0), the run is forced to be fully invariant.
+            if lmax == 0:
+                num_equivariant = 0
+            else:
+                num_equivariant = TOTAL_LAYERS - inv_layers
+
             data_points.append({
                 'n_train': n_train,
-                'inv_layers': inv_layers,
-                'lmax': lmax,
+                'num_equivariant': num_equivariant,
                 'metric_value': metrics_df.iloc[row_idx][metric]
             })
 
@@ -784,67 +802,40 @@ class VisualizationManager:
 
         df = pd.DataFrame(data_points)
 
-        # 3. For each (inv_layers, lmax) group, if there is variation in n_train, compute a regression
-        # of log10(metric_value) vs. log10(n_train) to estimate the slope.
+        # Group by effective number of equivariant layers and compute regression if possible.
         slope_records = []
-        grouped = df.groupby(['inv_layers', 'lmax'])
-        for (inv_layers, lmax), group in grouped:
+        for num_eq, group in df.groupby('num_equivariant'):
             if group['n_train'].nunique() < 2:
-                self.logger.warning(f"Not enough n_train variations for inv_layers={inv_layers}, lmax={lmax}")
+                self.logger.warning(f"Not enough n_train variations for num_equivariant={num_eq}")
                 continue
 
             x = np.log10(group['n_train'])
             y = np.log10(group['metric_value'])
             slope, intercept = np.polyfit(x, y, 1)
             slope_records.append({
-                'inv_layers': inv_layers,
-                'lmax': lmax,
+                'num_equivariant': num_eq,
                 'slope': slope
             })
 
         if not slope_records:
-            self.logger.warning("No slopes computed; insufficient data across run groups.")
+            self.logger.warning("No slopes computed; insufficient data across groups.")
             return
 
-        slope_df = pd.DataFrame(slope_records)
+        summary = pd.DataFrame(slope_records).sort_values('num_equivariant')
 
-        # 4. Average slopes for each unique number of invariant layers (grouping over lmax)
-        summary = slope_df.groupby('inv_layers').agg(
-            avg_slope=('slope', 'mean'),
-            std_slope=('slope', 'std'),
-            count=('slope', 'count')
-        ).reset_index()
-
-        # 5. Ensure the base case (0 invariant layers) is included
-        if 0 not in summary['inv_layers'].values:
-            # Note: if no data is available for 0 invariant layers, we add a row with NaN values.
-            base_case = pd.DataFrame([{'inv_layers': 0, 'avg_slope': np.nan, 'std_slope': np.nan, 'count': 0}])
-            summary = pd.concat([base_case, summary], ignore_index=True)
-            summary = summary.sort_values('inv_layers')
-
-        # 6. Plot average slope (with error bars) versus number of invariant layers.
         plt.figure(figsize=(8, 6))
-        plt.errorbar(
-            summary['inv_layers'],
-            summary['avg_slope'],
-            yerr=summary['std_slope'],
-            fmt='-o',
-            markersize=8,
-            capsize=5,
-            label="Averaged over different lmax values"
-        )
-        plt.xlabel("Number of Invariant Layers")
+        plt.plot(summary['num_equivariant'], summary['slope'], '-o', markersize=8, label='Slope')
+        plt.xlabel("Number of Equivariant Layers (0 = Fully Invariant)")
         plt.ylabel("Slope (log(metric) vs. log(n_train))")
-        plt.title(f"Evolution of Slope vs. Invariant Layers\nMetric: {metric}, Epoch: {epoch if epoch != -1 else 'Final'}")
+        plt.title(f"Evolution of Slope vs. Equivariant Layers\nMetric: {metric}, Epoch: {epoch if epoch != -1 else 'Final'}")
         plt.grid(True, alpha=0.3)
         plt.legend()
 
-        # 7. Save the figure
-        filename = f"slope_vs_invariant_layers_{metric}_epoch{epoch}.png"
+        filename = f"slope_vs_equivariant_layers_{metric}_epoch{epoch}.png"
         save_path = self.plots_dir / filename
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
         plt.close()
-        self.logger.success(f"Saved slope vs. invariant layers plot to {save_path}")
+        self.logger.success(f"Saved slope vs. equivariant layers plot to {save_path}")
 
     def visualize_results(self):
         """
@@ -884,10 +875,14 @@ class VisualizationManager:
             
             for metric, display_name in metrics_config.items():
                 try:
-                    self.plot_param_comparison(
+                    # self.plot_param_comparison(
+                    #     metric=metric,
+                    #     epoch=-1,
+                    #     fixed_params={}
+                    # )
+                    self.plot_slope_vs_inv_layers(
                         metric=metric,
-                        epoch=-1,
-                        fixed_params={}
+                        epoch=-1
                     )
                 except Exception as e:
                     self.logger.error(f"Failed to generate plots for {display_name}: {str(e)}")
