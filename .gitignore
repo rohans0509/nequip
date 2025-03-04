@@ -161,3 +161,14 @@ dmypy.json
 # Cython debug symbols
 cython_debug/
 nohup.out
+
+*.png
+*.pdf
+*.html
+*.json
+*.csv
+*.jsonl
+*.jsonl.gz
+*.jsonl.gz.part
+
+Miniconda3-latest-Linux-x86_64.sh

@@ -152,6 +152,43 @@ NequIP is being developed by:
 
 under the guidance of [Boris Kozinsky at Harvard](https://mir.g.harvard.edu/).
 
+## Experiment Tracking and Visualization
+
+NequIP includes an experiment tracking and visualization system to help manage, analyze, and visualize experimental results.
+
+### Key Features
+
+- Automatic tracking of hyperparameters, metrics, and file paths for all experiments
+- Central experiment log CSV file for easy analysis
+- Dashboard for visual exploration of experiment results
+- Command-line tools for quick result inspection
+
+### Usage
+
+#### View Experiment Results
+
+To view experiment results in the dashboard:
+
+```bash
+python -m src.dashboard.app
+```
+
+This starts a Streamlit web application you can access in your browser.
+
+#### Fix Experiment Log Issues
+
+If you encounter issues with the experiment log (missing data, incorrect dataset names, etc.), you can run the fix utility:
+
+```bash
+python -m src.fix_experiment_log
+```
+
+This script will:
+- Correct dataset names
+- Fill in missing values where possible
+- Calculate regression slopes for learning curves
+- Create a backup of the original log file
+
 ## Contact, questions, and contributing
 
 If you find a bug or have a proposal for a feature, please post it in the [Issues](https://github.com/mir-group/nequip/issues).
