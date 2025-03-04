@@ -10,6 +10,7 @@ Global settings for the experiment management system.
 """
 
 from pathlib import Path
+import multiprocessing as mp
 
 # Base directories
 BASE_DIR = Path("src/results")
@@ -17,6 +18,21 @@ TEMPLATE_DIR = Path("src/config_templates")
 
 # Experiment settings
 EXPERIMENT_NAME = "aspirin_e3nn_study"
+
+# Testing flag - set to True for test runs, False for production runs
+DEFAULT_IS_TEST = False
+
+# Multiple runs settings
+NUM_RUNS = 3  # Number of runs for each configuration
+RUN_LABELS = [f"run_{i+1}" for i in range(NUM_RUNS)]  # Labels for each run ("run_1", "run_2", etc.)
+
+# Setting to control whether multiple runs are executed in parallel
+# When False, runs are executed sequentially (safer for GPU memory)
+PARALLEL_RUNS = False  
+
+# Maximum number of concurrent processes for experiment execution
+# Set to a number lower than your available CPU cores to be considerate of other users
+MAX_WORKERS = min(4, mp.cpu_count() - 1)
 
 # Model architecture settings
 TOTAL_LAYERS = 4  # Total number of layers in the network
@@ -33,7 +49,7 @@ TOTAL_LAYERS = 4  # Total number of layers in the network
 # }
 
 PARAM_GRID = {
-    'dataset': ['aspirin'],  # Two datasets
+    'dataset': ['aspirin', 'benzene', 'ethanol', 'malonaldehyde', 'toluene'],  # Five datasets
     'n_train': [100, 200],
     'lmax': [0, 1, 2],
     'num_features': [16],
@@ -45,6 +61,10 @@ PARAM_GRID = {
 # Mapping of each dataset to its corresponding base configuration file.
 BASE_CONFIGS = {
     'aspirin': TEMPLATE_DIR / "aspirin.yaml",
+    'benzene': TEMPLATE_DIR / "benzene.yaml",
+    'ethanol': TEMPLATE_DIR / "ethanol.yaml", 
+    'malonaldehyde': TEMPLATE_DIR / "malonaldehyde.yaml",
+    'toluene': TEMPLATE_DIR / "toluene.yaml",
 }
 
 # Training settings

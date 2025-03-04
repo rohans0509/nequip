@@ -7,18 +7,18 @@ of hyperparameters. The valid keys include dataset, n_train, lmax, inv_layers, n
 
 def parse_run_name(run_name: str) -> dict:
     """
-    Parse a run name string into a dictionary of hyperparameters.
+    Parse a run name into a dictionary of parameter values.
     
-    Example:
-      "dataset_ds1_n_train_100_lmax_2_inv_layers_1" → 
-           {"dataset": "ds1", "n_train": "100", "lmax": "2", "inv_layers": "1"}
+    Example input: "dataset_ds1_n_train_100_lmax_2_inv_layers_1"
+    Example output:
+            {"dataset": "ds1", "n_train": "100", "lmax": "2", "inv_layers": "1"}
     """
     if run_name == "default_run":
         return {}
     parts = run_name.split('_')
     params = {}
     i = 0
-    valid_params = ["dataset", "n_train", "lmax", "inv_layers", "num_features", "max_epochs", "n_val"]
+    valid_params = ["dataset", "n_train", "lmax", "inv_layers", "num_features", "max_epochs", "n_val", "run"]
     while i < len(parts):
         matched = False
         for key in valid_params:
@@ -31,3 +31,25 @@ def parse_run_name(run_name: str) -> dict:
         if not matched:
             i += 1
     return params
+
+def create_run_name(params: dict) -> str:
+    """
+    Create a run name from parameter dictionary.
+    Inverse of parse_run_name.
+    
+    Example input: {"dataset": "ds1", "n_train": "100", "lmax": "2", "inv_layers": "1"}
+    Example output: "dataset_ds1_n_train_100_lmax_2_inv_layers_1"
+    """
+    components = []
+    
+    # Order parameters for consistency
+    ordered_params = [
+        "dataset", "n_train", "lmax", "inv_layers", 
+        "num_features", "max_epochs", "n_val", "run"
+    ]
+    
+    for param in ordered_params:
+        if param in params:
+            components.append(f"{param}_{params[param]}")
+    
+    return "_".join(components)

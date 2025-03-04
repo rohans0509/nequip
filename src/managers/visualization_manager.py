@@ -41,9 +41,17 @@ class VisualizationManager:
         """
         Filter the experiment DataFrame based on given column filters.
         Usage example: filter_experiments(dataset="ds1", lmax=2)
+        
+        Special handling for is_test flag:
+        - If is_test=True, only show test experiments
+        - If is_test=False, only show non-test experiments
+        - If is_test=None, show all experiments
         """
         df_filtered = self.df.copy()
         for key, value in filters.items():
+            # Special handling for is_test to allow explicit None value
+            if key == "is_test" and value is None:
+                continue  # Skip filtering if None is explicitly passed
             df_filtered = df_filtered[df_filtered[key] == value]
         return df_filtered
     
@@ -147,15 +155,18 @@ class VisualizationManager:
                         facet_by: str = "inv_layers", date_range: tuple = None):
         """
         Generate a plot comparing a metric across different datasets or parameters.
+        Each dataset will be shown in a separate panel, but part of the same plot.
+        This ensures that all non-plotting parameters (except date) are kept consistent
+        for proper comparison across datasets.
         
         Args:
             metric (str): The metric to plot (e.g., 'final_validation_f_mae')
             x_axis (str): The parameter to use for the x-axis (default: 'n_train')
             hue (str): The parameter to use for color coding (default: 'lmax')
-            facet_by (str): Parameter to create facet grid (default: 'inv_layers')
+            facet_by (str): Parameter to create subplots within each dataset panel (default: 'inv_layers')
             date_range (tuple): Optional (start_date, end_date) for filtering
         """
-        self.logger.section(f"Plotting {metric} by {x_axis}, colored by {hue}")
+        self.logger.section(f"Plotting {metric} by dataset, x-axis: {x_axis}, hue: {hue}, facet: {facet_by}")
         
         # Create a filtered copy of the dataframe
         plot_df = self.df.copy()
@@ -163,12 +174,16 @@ class VisualizationManager:
         # Filter by date if specified
         if date_range:
             start_date, end_date = date_range
-            plot_df = plot_df[(plot_df['timestamp'] >= start_date) & 
-                              (plot_df['timestamp'] <= end_date)]
+            if start_date:
+                plot_df = plot_df[plot_df['timestamp'] >= pd.to_datetime(start_date)]
+            if end_date:
+                plot_df = plot_df[plot_df['timestamp'] <= pd.to_datetime(end_date)]
                               
         # Add friendly display name if experiment_id is being used
         if x_axis == 'experiment_id' or hue == 'experiment_id' or facet_by == 'experiment_id':
-            plot_df['display_name'] = plot_df['experiment_id'].apply(self._get_friendly_experiment_id)
+            plot_df['display_name'] = plot_df['experiment_id'].apply(
+                lambda x: x[:8] + '...' if isinstance(x, str) and len(x) > 10 else x
+            )
             
             # Replace experiment_id with display_name in the parameters
             if x_axis == 'experiment_id':
@@ -193,89 +208,132 @@ class VisualizationManager:
         plot_df = plot_df[plot_df[metric].notnull() & 
                           plot_df[x_axis].notnull() & 
                           plot_df[hue].notnull() & 
-                          plot_df[facet_by].notnull() &
-                          plot_df['dataset'].notnull()]
+                          plot_df[facet_by].notnull()]
         
         if plot_df.empty:
             self.logger.warning("No data left after filtering; nothing to plot.")
             return
             
         # Get unique datasets
-        datasets = plot_df['dataset'].unique()
+        datasets = sorted(plot_df['dataset'].unique())
         self.logger.info(f"Creating plots for datasets: {', '.join(datasets)}")
         
-        # Plot settings
-        fig, axes = plt.subplots(1, len(datasets), figsize=(7*len(datasets), 6), sharey=True)
-        if len(datasets) == 1:
-            axes = [axes]  # Make sure axes is always iterable
-            
-        # Create subplots for each dataset
-        for i, dataset in enumerate(datasets):
-            dataset_df = plot_df[plot_df['dataset'] == dataset]
-            
-            # Group by facet_by parameter
-            for facet_val in sorted(dataset_df[facet_by].unique()):
-                facet_df = dataset_df[dataset_df[facet_by] == facet_val]
-                
-                # Create scatter plot
-                for hue_val in sorted(facet_df[hue].unique()):
-                    hue_df = facet_df[facet_df[hue] == hue_val]
-                    axes[i].scatter(hue_df[x_axis], hue_df[metric], 
-                                   label=f"{facet_by}={facet_val}, {hue}={hue_val}",
-                                   alpha=0.7)
-                    
-                    # Add best fit line if enough data points
-                    if len(hue_df) > 1:
-                        try:
-                            # Use log scale for fitting if x_axis is typically log-scaled
-                            if x_axis in ['n_train', 'num_features']:
-                                x_data = np.log10(hue_df[x_axis])
-                                y_data = np.log10(hue_df[metric])
-                                slope, intercept = np.polyfit(x_data, y_data, 1)
-                                
-                                x_fit = np.logspace(np.log10(min(hue_df[x_axis])), 
-                                                   np.log10(max(hue_df[x_axis])), 100)
-                                y_fit = 10**(slope * np.log10(x_fit) + intercept)
-                            else:
-                                x_data = hue_df[x_axis]
-                                y_data = hue_df[metric]
-                                slope, intercept = np.polyfit(x_data, y_data, 1)
-                                
-                                x_fit = np.linspace(min(hue_df[x_axis]), max(hue_df[x_axis]), 100)
-                                y_fit = slope * x_fit + intercept
-                                
-                            axes[i].plot(x_fit, y_fit, '--', alpha=0.5)
-                        except Exception as e:
-                            self.logger.warning(f"Could not fit line for {dataset}, {facet_by}={facet_val}, {hue}={hue_val}: {e}")
-            
-            # Set axis properties
-            if x_axis in ['n_train', 'num_features']:
-                axes[i].set_xscale('log')
-            if metric.endswith('_mae') or metric.endswith('_loss'):
-                axes[i].set_yscale('log')
-                
-            axes[i].set_title(f"Dataset: {dataset}")
-            axes[i].set_xlabel(x_axis.replace('_', ' ').title())
-            axes[i].grid(True, alpha=0.3, linestyle='--')
-            
-        # Set common y-label
-        fig.text(0.04, 0.5, metric.replace('_', ' ').title(), va='center', rotation='vertical', fontsize=12)
+        # Identify all the parameters that should be consistent
+        all_columns = set(plot_df.columns)
+        plotting_params = {'dataset', x_axis, hue, facet_by, 'timestamp', metric, 'experiment_id', 'display_name'}
+        consistent_params = all_columns - plotting_params
         
-        # Add legend
-        plt.figlegend(loc='upper center', bbox_to_anchor=(0.5, 0), ncol=min(5, len(plot_df[facet_by].unique()) * len(plot_df[hue].unique())))
+        # For each consistent parameter, check if values vary and warn if they do
+        for param in consistent_params:
+            if param in plot_df.columns and not all(pd.isna(plot_df[param])):
+                unique_values = plot_df[param].dropna().unique()
+                if len(unique_values) > 1:
+                    self.logger.warning(f"Parameter '{param}' has multiple values: {unique_values}")
+                    self.logger.warning(f"This may affect the validity of dataset comparisons")
+        
+        # Determine the number of facet values
+        facet_values = sorted(plot_df[facet_by].unique())
+        
+        # Create the figure
+        fig_height = 5 * len(facet_values)
+        fig_width = 7 * len(datasets)
+        fig = plt.figure(figsize=(fig_width, fig_height))
+        
+        # Create a grid of subplots
+        gs = plt.GridSpec(len(facet_values), len(datasets))
+        
+        # Get color palette for hue values
+        hue_values = sorted(plot_df[hue].unique())
+        palette = sns.color_palette("husl", n_colors=len(hue_values))
+        hue_colors = dict(zip(hue_values, palette))
+        
+        # Create plots for each dataset and facet value
+        for i, facet_val in enumerate(facet_values):
+            for j, dataset in enumerate(datasets):
+                # Create subplot
+                ax = fig.add_subplot(gs[i, j])
+                
+                # Filter data for this dataset and facet value
+                subset = plot_df[(plot_df['dataset'] == dataset) & (plot_df[facet_by] == facet_val)]
+                
+                if subset.empty:
+                    ax.text(0.5, 0.5, f"No data for\n{dataset}\n{facet_by}={facet_val}",
+                            ha='center', va='center', fontsize=12)
+                    continue
+                
+                # Plot each hue value
+                for hue_val in hue_values:
+                    hue_data = subset[subset[hue] == hue_val]
+                    if not hue_data.empty:
+                        ax.scatter(hue_data[x_axis], hue_data[metric], 
+                                  color=hue_colors[hue_val], label=f"{hue}={hue_val}",
+                                  alpha=0.7, s=80)
+                        
+                        # Add best fit line if enough data points
+                        if len(hue_data) > 1:
+                            try:
+                                # Use log scale for fitting if x_axis is typically log-scaled
+                                if x_axis in ['n_train', 'num_features']:
+                                    x_data = np.log10(hue_data[x_axis])
+                                    y_data = np.log10(hue_data[metric])
+                                    slope, intercept = np.polyfit(x_data, y_data, 1)
+                                    
+                                    x_fit = np.logspace(np.log10(min(hue_data[x_axis])), 
+                                                      np.log10(max(hue_data[x_axis])), 100)
+                                    y_fit = 10**(slope * np.log10(x_fit) + intercept)
+                                    
+                                    # Display slope in legend
+                                    ax.plot(x_fit, y_fit, '--', color=hue_colors[hue_val], alpha=0.7,
+                                          label=f"{hue}={hue_val} (slope={slope:.2f})")
+                                else:
+                                    x_data = hue_data[x_axis]
+                                    y_data = hue_data[metric]
+                                    slope, intercept = np.polyfit(x_data, y_data, 1)
+                                    
+                                    x_fit = np.linspace(min(hue_data[x_axis]), max(hue_data[x_axis]), 100)
+                                    y_fit = slope * x_fit + intercept
+                                    
+                                    ax.plot(x_fit, y_fit, '--', color=hue_colors[hue_val], alpha=0.7,
+                                           label=f"{hue}={hue_val} (slope={slope:.2f})")
+                            except Exception as e:
+                                self.logger.warning(f"Could not fit line for {dataset}, {facet_by}={facet_val}, {hue}={hue_val}: {e}")
+                
+                # Set axis properties
+                if x_axis in ['n_train', 'num_features']:
+                    ax.set_xscale('log')
+                if metric.endswith('_mae') or metric.endswith('_loss'):
+                    ax.set_yscale('log')
+                
+                # Set titles only for certain subplots
+                if i == 0:  # First row gets dataset titles
+                    ax.set_title(f"Dataset: {dataset}", fontsize=14, fontweight='bold')
+                if j == 0:  # First column gets facet labels
+                    ax.set_ylabel(f"{facet_by}={facet_val}\n{metric.replace('_', ' ').title()}", fontsize=12)
+                
+                # Only add x-label to bottom row
+                if i == len(facet_values) - 1:
+                    ax.set_xlabel(x_axis.replace('_', ' ').title(), fontsize=12)
+                
+                # Add grid
+                ax.grid(True, alpha=0.3, linestyle='--')
+                
+                # Add legend only to the rightmost plots
+                if j == len(datasets) - 1:
+                    ax.legend(title=hue.replace('_', ' ').title(), 
+                             bbox_to_anchor=(1.05, 1), loc='upper left')
         
         plt.suptitle(f"{metric.replace('_', ' ').title()} Comparison Across Datasets", 
-                    fontsize=16, fontweight='bold', y=1.05)
+                    fontsize=16, fontweight='bold', y=1.01)
         plt.tight_layout()
         
         # Save plot
         plots_dir = Path("src/results") / self.df["experiment_name"].iloc[0] / "plots"
         plots_dir.mkdir(exist_ok=True, parents=True)
-        save_path = plots_dir / f"dataset_comparison_{metric}.png"
+        save_path = plots_dir / f"dataset_comparison_{metric}_{x_axis}_{hue}_{facet_by}.png"
         plt.savefig(save_path, dpi=300, bbox_inches="tight")
         plt.close()
         self.logger.success(f"Saved dataset comparison plot to {save_path}")
-        
+
     def plot_metric_over_time(self, metric: str, group_by: str = 'dataset', 
                              start_date: str = None, end_date: str = None,
                              rolling_window: int = None):
@@ -481,3 +539,314 @@ class VisualizationManager:
         except Exception as e:
             self.logger.error(f"Error finding latest plot: {e}")
             return None
+
+    def group_by_config(self, grouping_params=None, exclude_params=None):
+        """
+        Group experiments by their configuration parameters.
+        
+        Args:
+            grouping_params (list): Parameters to group by. If None, groups by all model parameters
+                                    except experiment_id, timestamp, and metric results.
+            exclude_params (list): Parameters to exclude from grouping.
+            
+        Returns:
+            dict: Dictionary mapping parameter combinations to experiment groups
+        """
+        df = self.df.copy()
+        
+        # Default parameters to group by (all parameters except metrics and metadata)
+        if grouping_params is None:
+            # Identify potential grouping parameters (all columns that aren't metrics or metadata)
+            all_columns = set(df.columns)
+            non_param_cols = {
+                'experiment_id', 'timestamp', 'run_directory', 'config_file', 'metrics_file',
+                'training_log_file', 'evaluation_log_file', 'deployed_model_file', 'plot_directory',
+                'status', 'experiment_notes', 'run_iteration'  # Add run_iteration to columns to exclude
+            }
+            
+            # Also exclude metric columns (typically have 'loss' or 'mae' in the name)
+            metric_cols = {col for col in all_columns if 
+                         any(metric in col for metric in ['loss', 'mae', 'time', 'epoch'])}
+            
+            # Parameters to group by are all columns except non-parameters and metrics
+            grouping_params = list(all_columns - non_param_cols - metric_cols)
+        
+        # Further exclude any specified parameters
+        if exclude_params:
+            grouping_params = [p for p in grouping_params if p not in exclude_params]
+            
+        self.logger.info(f"Grouping experiments by parameters: {grouping_params}")
+        
+        # Group experiments by the parameter combination
+        experiment_groups = {}
+        
+        # Handle case where some parameters might be missing in some rows
+        df_filled = df.copy()
+        for param in grouping_params:
+            if param not in df_filled.columns:
+                df_filled[param] = np.nan
+                
+        # Iterate through rows and build groups
+        for _, row in df_filled.iterrows():
+            # Create a tuple of parameter values to use as dictionary key
+            param_values = tuple((param, row[param]) for param in grouping_params)
+            
+            # Skip rows with missing parameter values
+            if any(pd.isna(v) for _, v in param_values):
+                continue
+                
+            # Add row to the appropriate group
+            if param_values not in experiment_groups:
+                experiment_groups[param_values] = []
+            experiment_groups[param_values].append(row)
+            
+        # Convert lists of rows to DataFrame groups
+        for params, rows in experiment_groups.items():
+            experiment_groups[params] = pd.DataFrame(rows)
+            
+        # Log group counts
+        self.logger.info(f"Found {len(experiment_groups)} unique parameter combinations")
+        for params, group_df in experiment_groups.items():
+            param_str = ", ".join(f"{p}={v}" for p, v in params)
+            self.logger.info(f"  {param_str}: {len(group_df)} experiments")
+            
+        return experiment_groups
+    
+    def calculate_group_statistics(self, experiment_groups, metrics):
+        """
+        Calculate statistics (mean, std, min, max) for specified metrics across experiment groups.
+        
+        Args:
+            experiment_groups (dict): Groups of experiments with the same parameters
+            metrics (list): List of metrics to calculate statistics for
+            
+        Returns:
+            pd.DataFrame: DataFrame with one row per parameter combination, with statistics for each metric
+        """
+        if not experiment_groups:
+            self.logger.warning("No experiment groups provided for statistical analysis")
+            return pd.DataFrame()
+            
+        # Prepare results dataframe
+        result_rows = []
+        
+        for params, group_df in experiment_groups.items():
+            # Convert params tuple to dict for easier handling
+            param_dict = {p: v for p, v in params}
+            
+            # Calculate statistics for each metric
+            for metric in metrics:
+                if metric not in group_df.columns:
+                    continue
+                    
+                # Skip if all values are NaN
+                if group_df[metric].isna().all():
+                    continue
+                
+                # Basic statistics
+                mean_val = group_df[metric].mean()
+                std_val = group_df[metric].std()
+                min_val = group_df[metric].min()
+                max_val = group_df[metric].max()
+                count = group_df[metric].count()
+                
+                # Only add if we have valid statistics
+                if not pd.isna(mean_val) and count > 0:
+                    # Create row with parameters and statistics
+                    result_row = param_dict.copy()
+                    result_row.update({
+                        'metric': metric,
+                        'mean': mean_val,
+                        'std': std_val,
+                        'min': min_val,
+                        'max': max_val,
+                        'count': count,
+                        'cv': std_val / mean_val if mean_val != 0 else np.nan,  # Coefficient of variation
+                    })
+                    result_rows.append(result_row)
+        
+        # Convert to DataFrame
+        stats_df = pd.DataFrame(result_rows)
+        return stats_df
+        
+    def plot_with_error_bars(self, metric, x_axis, hue=None, facet_by=None, filters=None, 
+                            group_by=None, exclude_from_grouping=None):
+        """
+        Generate a plot with error bars showing mean ± std across multiple runs.
+        
+        Args:
+            metric (str): The metric to visualize
+            x_axis (str): Parameter to use for x-axis
+            hue (str): Parameter to use for color coding
+            facet_by (str): Parameter to use for faceting
+            filters (dict): Filters to apply before grouping
+            group_by (list): Parameters to group by. If None, groups by all model parameters
+            exclude_from_grouping (list): Parameters to exclude from grouping
+            
+        This creates a plot showing mean values with error bars for standard deviation.
+        """
+        self.logger.section(f"Generating plot with error bars for {metric}")
+        
+        # Apply filters if provided
+        df_filtered = self.df.copy()
+        if filters:
+            for key, value in filters.items():
+                df_filtered = df_filtered[df_filtered[key] == value]
+                
+        if df_filtered.empty:
+            self.logger.warning("No data left after filtering")
+            return
+            
+        # Create a temporary VisualizationManager with filtered data
+        temp_viz = VisualizationManager(df_filtered)
+        
+        # Set default grouping parameters if not provided
+        if group_by is None:
+            # Group by everything except the parameters used for plotting
+            exclude = [x_axis]
+            if hue:
+                exclude.append(hue)
+            if facet_by:
+                exclude.append(facet_by)
+                
+            # Add any additional exclusions
+            if exclude_from_grouping:
+                exclude.extend(exclude_from_grouping)
+                
+            # Use all parameters except those for plotting
+            group_by = [col for col in df_filtered.columns if col not in exclude]
+            
+        # Group experiments by configuration
+        experiment_groups = temp_viz.group_by_config(group_by, exclude_params=exclude_from_grouping)
+        
+        # Calculate statistics for the metric
+        stats_df = temp_viz.calculate_group_statistics(experiment_groups, [metric])
+        
+        if stats_df.empty:
+            self.logger.warning(f"No statistics available for {metric}")
+            return
+            
+        # Prepare for plotting
+        plt.figure(figsize=(12, 8))
+        
+        # Determine unique values for faceting
+        facet_values = [None]
+        if facet_by and facet_by in stats_df.columns:
+            facet_values = sorted(stats_df[facet_by].unique())
+            
+        # Create subplots for faceting
+        fig, axes = plt.subplots(1, len(facet_values), 
+                                figsize=(7*len(facet_values), 6), 
+                                sharey=True, squeeze=False)
+        axes = axes.flatten()  # Ensure we can index axes as a 1D array
+        
+        # For each facet value, create a plot with error bars
+        for i, facet_val in enumerate(facet_values):
+            ax = axes[i]
+            
+            # Filter data for this facet
+            if facet_by and facet_val is not None:
+                facet_data = stats_df[stats_df[facet_by] == facet_val]
+            else:
+                facet_data = stats_df
+                
+            # Skip if no data for this facet
+            if facet_data.empty:
+                ax.text(0.5, 0.5, f"No data for\n{facet_by}={facet_val}",
+                       ha='center', va='center', fontsize=12)
+                continue
+                
+            # Determine unique values for hue
+            hue_values = [None]
+            if hue and hue in facet_data.columns:
+                hue_values = sorted(facet_data[hue].unique())
+                
+            # Get color palette for hue
+            palette = sns.color_palette("husl", n_colors=len(hue_values))
+            colors = dict(zip(hue_values, palette))
+            
+            # For each hue value, plot points with error bars
+            for j, hue_val in enumerate(hue_values):
+                # Filter data for this hue
+                if hue and hue_val is not None:
+                    hue_data = facet_data[facet_data[hue] == hue_val]
+                else:
+                    hue_data = facet_data
+                    
+                # Skip if no data for this hue
+                if hue_data.empty:
+                    continue
+                    
+                # Sort by x-axis for line plotting
+                hue_data = hue_data.sort_values(by=x_axis)
+                
+                # Get color
+                color = colors.get(hue_val, 'blue')
+                
+                # Plot mean values with error bars
+                ax.errorbar(
+                    hue_data[x_axis], 
+                    hue_data['mean'], 
+                    yerr=hue_data['std'],
+                    fmt='o-',
+                    color=color,
+                    capsize=5,
+                    label=f"{hue}={hue_val}" if hue else None,
+                    alpha=0.8
+                )
+                
+                # Add individual data points if there are fewer than 20
+                if len(experiment_groups) < 20:
+                    for params, group_df in experiment_groups.items():
+                        # Convert params tuple to dict
+                        param_dict = {p: v for p, v in params}
+                        
+                        # Check if this group matches our hue and facet
+                        if hue and hue_val is not None and param_dict.get(hue) != hue_val:
+                            continue
+                        if facet_by and facet_val is not None and param_dict.get(facet_by) != facet_val:
+                            continue
+                            
+                        # Plot individual points with slight jitter
+                        x_val = param_dict.get(x_axis)
+                        if x_val is not None:
+                            jitter = np.random.normal(0, 0.05, size=len(group_df))
+                            ax.scatter(
+                                [x_val + j for j in jitter], 
+                                group_df[metric], 
+                                alpha=0.3, 
+                                color=color,
+                                marker='x',
+                                s=30
+                            )
+            
+            # Set axis properties
+            if x_axis in ['n_train', 'num_features']:
+                ax.set_xscale('log')
+            if metric.endswith('_mae') or metric.endswith('_loss'):
+                ax.set_yscale('log')
+                
+            # Set titles and labels
+            if facet_by and facet_val is not None:
+                ax.set_title(f"{facet_by}={facet_val}")
+            ax.set_xlabel(x_axis.replace('_', ' ').title())
+            ax.set_ylabel(f"{metric.replace('_', ' ').title()}\n(mean ± std)")
+            ax.grid(True, alpha=0.3, linestyle='--')
+            
+            # Add legend if we have hue values
+            if hue and len(hue_values) > 1:
+                ax.legend(title=hue.replace('_', ' ').title())
+                
+        # Add overall title
+        fig.suptitle(f"{metric.replace('_', ' ').title()} vs {x_axis.replace('_', ' ').title()}\n(with standard deviation across runs)",
+                    fontsize=16, fontweight='bold', y=1.05)
+        plt.tight_layout()
+        
+        # Save the plot
+        plots_dir = Path("src/results") / self.df["experiment_name"].iloc[0] / "plots"
+        plots_dir.mkdir(exist_ok=True, parents=True)
+        save_path = plots_dir / f"error_bars_{metric}_{x_axis}.png"
+        plt.savefig(save_path, dpi=300, bbox_inches="tight")
+        plt.close()
+        
+        self.logger.success(f"Saved error bar plot to {save_path}")

@@ -34,7 +34,7 @@ class ExperimentTracker:
             "layer_irreps", "final_training_loss", "final_validation_loss",
             "final_training_f_mae", "final_validation_f_mae", "final_training_e_mae", "final_validation_e_mae",
             "wall_time", "best_epoch", "time_per_epoch", "time_per_sample", "regression_slope", "num_equivariant",
-            "status", "experiment_notes"
+            "status", "experiment_notes", "is_test", "run_iteration"
         ]
 
     def load_experiment_df(self):
@@ -120,6 +120,7 @@ class ExperimentTracker:
         # Check config file for dataset name if available
         config_file = run_dir.parent / "configs" / f"{run_dir.name}.yaml"
         config_dataset = None
+        config = None
         if config_file.exists():
             try:
                 import yaml
@@ -186,6 +187,15 @@ class ExperimentTracker:
         row["inv_layers"] = int(params.get("inv_layers", 0)) if "inv_layers" in params else None
         row["num_features"] = int(params.get("num_features", 0)) if "num_features" in params else None
         row["max_epochs"] = int(params.get("max_epochs", 0)) if "max_epochs" in params else None
+
+        # Handle special case: if lmax=0, inv_layers should be TOTAL_LAYERS
+        try:
+            from src.settings import TOTAL_LAYERS
+            if row["lmax"] == 0 and row["inv_layers"] is not None and row["inv_layers"] != TOTAL_LAYERS:
+                print(f"WARNING: For lmax=0, inv_layers should be {TOTAL_LAYERS}, but found {row['inv_layers']} in {run_dir.name}. Correcting.")
+                row["inv_layers"] = TOTAL_LAYERS
+        except ImportError:
+            pass
 
         # Try to get missing values from config file if available
         if config_file.exists():
@@ -309,7 +319,69 @@ class ExperimentTracker:
         # Outcome: complete if both deployed model and evaluation log exist.
         row["status"] = "complete" if (Path(row["deployed_model_file"]).exists() and Path(row["evaluation_log_file"]).exists()) else "incomplete"
         row["experiment_notes"] = ""
+
+        # Set the is_test flag from settings or config file
+        try:
+            # Try to get the is_test flag from settings
+            from src.settings import DEFAULT_IS_TEST
+            row["is_test"] = DEFAULT_IS_TEST
+            
+            # If config exists, check if it has an is_test flag that would override the default
+            if config is not None and 'is_test' in config:
+                row["is_test"] = bool(config.get('is_test'))
+                
+            # Extract run_iteration from config if available
+            if config is not None and 'run_iteration' in config:
+                row["run_iteration"] = config.get('run_iteration')
+            elif config is not None and 'run_name' in config:
+                # Try to parse it from the run_name in the config
+                run_name = config.get('run_name')
+                params = self._extract_params_from_run_name(run_name)
+                if 'run' in params:
+                    row["run_iteration"] = params['run']
+            
+        except ImportError:
+            # If settings not available, default to False
+            row["is_test"] = False
+            
+        # If run_iteration wasn't set, try to extract from run name
+        if "run_iteration" not in row or not row["run_iteration"]:
+            params = self._extract_params_from_run_name(run_dir.name)
+            row["run_iteration"] = params.get("run", "1")  # Default to 1 if not specified
+
         return row
+
+    def _extract_params_from_run_name(self, run_name):
+        """
+        Extract hyperparameters from the run name.
+        Example: dataset_aspirin_n_train_100_lmax_2_inv_layers_1_run_1
+        Returns a dictionary of parameter values.
+        """
+        if run_name == "default_run":
+            return {}
+            
+        try:
+            from src.utils.parse_helpers import parse_run_name
+            return parse_run_name(run_name)
+        except ImportError:
+            # Fallback method if parse_helpers is not available
+            params = {}
+            parts = run_name.split('_')
+            
+            # Extract parameters - simplified approach
+            for i in range(len(parts) - 1):
+                if parts[i] == "dataset" and i + 1 < len(parts):
+                    params["dataset"] = parts[i + 1]
+                elif parts[i] == "n" and parts[i + 1] == "train" and i + 2 < len(parts):
+                    params["n_train"] = parts[i + 2]
+                elif parts[i] == "lmax" and i + 1 < len(parts):
+                    params["lmax"] = parts[i + 1]
+                elif parts[i] == "inv" and parts[i + 1] == "layers" and i + 2 < len(parts):
+                    params["inv_layers"] = parts[i + 2]
+                elif parts[i] == "run" and i + 1 < len(parts):
+                    params["run"] = parts[i + 1]
+                    
+            return params
 
     def fix_experiment_log(self):
         """

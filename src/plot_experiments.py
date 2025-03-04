@@ -28,6 +28,8 @@ def parse_args():
     base_parser.add_argument('--end-date', type=str, help='End date (YYYY-MM-DD)')
     base_parser.add_argument('--lmax', type=int, help='Filter by lmax value')
     base_parser.add_argument('--inv-layers', type=int, help='Filter by inv_layers value')
+    base_parser.add_argument('--is-test', type=str, choices=['true', 'false', 'all'], default='false',
+                            help='Filter by test status: true=show only test runs, false=only production runs, all=show all')
     
     # Param comparison command
     param_parser = subparsers.add_parser('param-comparison', parents=[base_parser],
@@ -59,6 +61,20 @@ def parse_args():
     heatmap_parser.add_argument('--y-param', type=str, required=True,
                               help='Parameter for y-axis of heatmap')
     
+    # Error bar plot command for statistical analysis of multiple runs
+    error_bar_parser = subparsers.add_parser('error-bars', parents=[base_parser],
+                                           help='Plot with error bars showing mean ± std across multiple runs')
+    error_bar_parser.add_argument('--x-axis', type=str, default='n_train',
+                                help='Parameter to use for x-axis')
+    error_bar_parser.add_argument('--hue', type=str, default='lmax',
+                                help='Parameter to use for color coding')
+    error_bar_parser.add_argument('--facet-by', type=str, default='inv_layers',
+                                help='Parameter to use for faceting')
+    error_bar_parser.add_argument('--group-by', type=str, nargs='+',
+                                help='Parameters to group by for statistical analysis. If not specified, groups by all parameters except those used for plotting.')
+    error_bar_parser.add_argument('--exclude-from-grouping', type=str, nargs='+',
+                                help='Parameters to exclude when grouping experiments')
+    
     # Info command to list available datasets and metrics
     info_parser = subparsers.add_parser('info', help='Show available datasets and metrics')
     
@@ -84,6 +100,13 @@ def main():
         logger.info(f"Metrics: {', '.join(metrics)}")
         if start_date and end_date:
             logger.info(f"Date range: {start_date.strftime('%Y-%m-%d')} to {end_date.strftime('%Y-%m-%d')}")
+        
+        # Show test status distribution if available
+        if 'is_test' in df.columns:
+            test_counts = df['is_test'].value_counts()
+            logger.info(f"Test runs: {test_counts.get(True, 0)}")
+            logger.info(f"Production runs: {test_counts.get(False, 0)}")
+        
         return
     
     # Check if a command was provided
@@ -99,6 +122,13 @@ def main():
         filters['lmax'] = args.lmax
     if args.inv_layers is not None:
         filters['inv_layers'] = args.inv_layers
+    
+    # Handle is_test filter
+    if args.is_test == 'true':
+        filters['is_test'] = True
+    elif args.is_test == 'false':
+        filters['is_test'] = False
+    # For 'all', we don't add any filter
     
     # Handle each command
     if args.command == 'param-comparison':
@@ -121,6 +151,18 @@ def main():
         
     elif args.command == 'heatmap':
         viz.plot_parameter_heatmap(args.metric, args.x_param, args.y_param, filters)
+    
+    elif args.command == 'error-bars':
+        # Generate error bar plot with statistics
+        viz.plot_with_error_bars(
+            args.metric,
+            args.x_axis,
+            args.hue,
+            args.facet_by,
+            filters,
+            args.group_by,
+            args.exclude_from_grouping
+        )
     
     logger.success(f"Plot generation completed for command: {args.command}")
 

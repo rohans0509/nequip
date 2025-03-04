@@ -41,12 +41,21 @@ class ExperimentManager:
         
         return str(version_dir)
     
-    def generate_configs(self, param_grid: Dict[str, List], version_dir: str) -> List[str]:
+    def generate_configs(self, version_dir, param_grid):
         """
-        Generate configuration files for experiments based on the parameter grid.
-        Chooses the correct base config based on the dataset parameter.
+        Generate configuration files for all parameter combinations.
+        
+        Args:
+            version_dir (str): Directory to save configurations.
+            param_grid (dict): Dictionary of parameter grids.
+            
+        Returns:
+            list: List of configuration file paths.
         """
-        self.logger.section("Configuration Generation")
+        from itertools import product
+        Path(version_dir).mkdir(parents=True, exist_ok=True)
+        Path(version_dir, 'configs').mkdir(exist_ok=True)
+        
         config_paths = []
         total_combinations = len(list(product(*param_grid.values())))
         
@@ -63,19 +72,54 @@ class ExperimentManager:
             keys, values = zip(*param_grid.items())
             for v in product(*values):
                 params = dict(zip(keys, v))
-                # Skip invalid/redundant configurations.
-                if params.get('lmax', None) == 0:
-                    if params.get('inv_layers', None) != TOTAL_LAYERS:
-                        self.logger.info(
-                            f"Skipping invalid config (lmax=0 with inv_layers={params.get('inv_layers')})."
-                        )
-                        continue
-                else:
-                    if params.get('inv_layers', None) == TOTAL_LAYERS:
-                        self.logger.info(
-                            f"Skipping redundant config (lmax={params.get('lmax')} with inv_layers={params.get('inv_layers')})."
-                        )
-                        continue
+                
+                # Handle the special case of lmax=0: validate that inv_layers is TOTAL_LAYERS
+                # or skip this combination
+                if 'lmax' in params and params['lmax'] == 0:
+                    if 'inv_layers' in params and params['inv_layers'] != TOTAL_LAYERS:
+                        # Skip this invalid combination unless it was explicitly requested
+                        # in the varying parameters (which would be unusual but supported)
+                        if 'lmax' in varying_params and 'inv_layers' in varying_params:
+                            # Check if this specific combination was explicitly requested
+                            was_explicitly_requested = False
+                            for combo in product(*varying_params.values()):
+                                combo_dict = dict(zip(varying_params.keys(), combo))
+                                if combo_dict.get('lmax') == 0 and combo_dict.get('inv_layers') == params['inv_layers']:
+                                    was_explicitly_requested = True
+                                    break
+                                    
+                            if not was_explicitly_requested:
+                                self.logger.info(
+                                    f"Skipping invalid config: lmax=0 requires inv_layers={TOTAL_LAYERS}, but found inv_layers={params.get('inv_layers')}."
+                                )
+                                progress.advance(task)
+                                continue
+                            else:
+                                # This combination was explicitly requested in varying_params,
+                                # so we'll adjust inv_layers to TOTAL_LAYERS as required
+                                self.logger.warning(
+                                    f"Found explicit request for lmax=0 with inv_layers={params['inv_layers']}. "
+                                    f"Setting inv_layers={TOTAL_LAYERS} as required for lmax=0."
+                                )
+                                params['inv_layers'] = TOTAL_LAYERS
+                        else:
+                            # This combination was generated from the grid but not explicitly varied,
+                            # so we'll skip it as invalid
+                            self.logger.info(
+                                f"Skipping invalid config: lmax=0 requires inv_layers={TOTAL_LAYERS}, but found inv_layers={params.get('inv_layers')}."
+                            )
+                            progress.advance(task)
+                            continue
+                
+                # For lmax > 0, all inv_layers values are valid, but inv_layers=TOTAL_LAYERS is redundant
+                # since it would be equivalent to having a non-invariant network 
+                elif params.get('lmax', 0) > 0 and params.get('inv_layers', 0) == TOTAL_LAYERS:
+                    self.logger.info(
+                        f"Skipping redundant config: lmax={params.get('lmax')} with inv_layers={TOTAL_LAYERS} "
+                        f"is redundant (equivalent to a non-invariant network)."
+                    )
+                    progress.advance(task)
+                    continue
 
                 # Build run name from varying parameters.
                 run_parts = [f"{k}_{params[k]}" for k in varying_params.keys()]
@@ -90,11 +134,13 @@ class ExperimentManager:
                 base_config_path = str(BASE_CONFIGS.get(dataset, ""))
                 if not base_config_path:
                     self.logger.error(f"No base config defined for dataset {dataset}.")
+                    progress.advance(task)
                     continue
                 
                 base_config = self.config_manager.load_config(base_config_path)
                 if not base_config:
                     self.logger.error(f"Failed to load base config for dataset {dataset}.")
+                    progress.advance(task)
                     continue
                 
                 # Generate layer irreps.
@@ -106,10 +152,9 @@ class ExperimentManager:
                             params['inv_layers']
                         )
                         params['layer_irreps'] = layer_irreps
-                        if params['lmax'] == 0:
-                            params['inv_layers'] = TOTAL_LAYERS
                     except Exception as e:
                         self.logger.error(f"Failed to generate layer irreps for {run_name}: {e}")
+                        progress.advance(task)
                         continue
                 # remove dataset from params but deepcopy so we don't modify the original
                 params2 = params.copy()
@@ -126,6 +171,7 @@ class ExperimentManager:
                         self.logger.info(f"Saved config to {config_path}")
                     except Exception as e:
                         self.logger.error(f"Failed to save config for {run_name}: {e}")
+                        progress.advance(task)
                         continue
                 else:
                     self.logger.info(f"Config already exists at {config_path}, skipping save.")

@@ -56,80 +56,108 @@ class Dashboard:
         return experiment_id
     
     def run(self):
-        """Main entry point for the dashboard"""
+        """Main entry point for the Streamlit dashboard"""
         st.set_page_config(
-            page_title="Experiment Visualization Dashboard",
+            page_title="NequIP Experiment Visualization",
             page_icon="📊",
             layout="wide",
             initial_sidebar_state="expanded",
         )
         
-        st.title("Experiment Visualization Dashboard")
-        st.sidebar.title("Visualization Options")
+        st.title("NequIP Experiment Visualization Dashboard")
+        st.write("Interactive dashboard for visualizing experiment results")
         
-        # Visualization type selector
-        viz_type = st.sidebar.selectbox(
-            "Select Visualization Type",
-            ["Dataset Comparison", "Parameter Comparison", "Time Series", "Parameter Heatmap", "Raw Data Explorer"]
+        # Add navigation in sidebar
+        st.sidebar.title("Navigation")
+        page = st.sidebar.radio(
+            "Select Page",
+            ["Dataset Comparison", "Parameter Comparison", "Time Series", 
+             "Parameter Heatmap", "Statistical Analysis", "Raw Data Explorer"]
         )
         
-        # Call the appropriate visualization method
-        if viz_type == "Dataset Comparison":
+        # Navigate to the selected page
+        if page == "Dataset Comparison":
             self.dataset_comparison_view()
-        elif viz_type == "Parameter Comparison":
+        elif page == "Parameter Comparison":
             self.parameter_comparison_view()
-        elif viz_type == "Time Series":
+        elif page == "Time Series":
             self.time_series_view()
-        elif viz_type == "Parameter Heatmap":
+        elif page == "Parameter Heatmap":
             self.parameter_heatmap_view()
-        elif viz_type == "Raw Data Explorer":
+        elif page == "Statistical Analysis":
+            self.statistical_analysis_view()
+        elif page == "Raw Data Explorer":
             self.raw_data_explorer()
-    
+            
     def get_common_filters(self):
-        """Get common filter controls that appear in multiple visualization types"""
-        st.sidebar.subheader("Filters")
+        """
+        Create a sidebar section for common filter options that apply to all visualizations.
+        This includes dataset selection, date range, and parameter filters.
         
-        # Dataset filter
-        datasets = ["All"] + self.viz.get_available_datasets()
-        selected_dataset = st.sidebar.selectbox("Dataset", datasets)
+        Returns:
+            Dict of filter parameters to apply to visualizations
+        """
+        st.sidebar.header("Common Filters")
         
-        # Date range filter
-        min_date, max_date = self.viz.get_date_range()
-        if min_date and max_date:
-            min_date = min_date.date()
-            max_date = max_date.date()
-            date_range = st.sidebar.date_input(
-                "Date Range",
-                value=(min_date, max_date),
-                min_value=min_date,
-                max_value=max_date
-            )
-            if len(date_range) == 2:
-                start_date, end_date = date_range
-                start_date = datetime.combine(start_date, datetime.min.time())
-                end_date = datetime.combine(end_date, datetime.max.time())
-            else:
-                start_date, end_date = None, None
-        else:
-            start_date, end_date = None, None
+        # Dataset selection
+        available_datasets = ['All'] + self.df['dataset'].unique().tolist()
+        selected_dataset = st.sidebar.selectbox("Dataset", available_datasets)
         
-        # Parameter filters
-        lmax_values = ["All"] + [str(x) for x in sorted(self.df["lmax"].dropna().unique())]
-        selected_lmax = st.sidebar.selectbox("L-max", lmax_values)
+        # Date range selection
+        date_min = self.df['timestamp'].min().date() if not self.df.empty else datetime.now().date()
+        date_max = self.df['timestamp'].max().date() if not self.df.empty else datetime.now().date()
         
-        inv_layers_values = ["All"] + [str(x) for x in sorted(self.df["inv_layers"].dropna().unique())]
+        col1, col2 = st.sidebar.columns(2)
+        with col1:
+            start_date = st.date_input("Start Date", 
+                                      value=date_min,
+                                      min_value=date_min,
+                                      max_value=date_max)
+        with col2:
+            end_date = st.date_input("End Date", 
+                                    value=date_max,
+                                    min_value=date_min,
+                                    max_value=date_max)
+        
+        # Parameters
+        st.sidebar.subheader("Parameter Filters")
+        
+        # Lmax filter
+        lmax_values = [None] + sorted([int(x) for x in self.df['lmax'].dropna().unique()])
+        selected_lmax = st.sidebar.selectbox("L_max Value", lmax_values)
+        
+        # Invariant layers filter
+        inv_layers_values = [None] + sorted([int(x) for x in self.df['inv_layers'].dropna().unique()])
         selected_inv_layers = st.sidebar.selectbox("Invariant Layers", inv_layers_values)
+        
+        # Test/Production filter
+        is_test_options = ["All Experiments", "Production Only (is_test=False)", "Test Only (is_test=True)"]
+        is_test_selection = st.sidebar.selectbox("Experiment Type", is_test_options)
+        
+        # Map selection to is_test value
+        if is_test_selection == "Production Only (is_test=False)":
+            is_test_value = False
+        elif is_test_selection == "Test Only (is_test=True)":
+            is_test_value = True
+        else:
+            is_test_value = None
         
         # Build filter dict
         filters = {}
-        if selected_dataset != "All":
-            filters["dataset"] = selected_dataset
-        if selected_lmax != "All":
-            filters["lmax"] = int(selected_lmax)
-        if selected_inv_layers != "All":
-            filters["inv_layers"] = int(selected_inv_layers)
+        if selected_dataset != 'All':
+            filters['dataset'] = selected_dataset
+        if selected_lmax is not None:
+            filters['lmax'] = selected_lmax
+        if selected_inv_layers is not None:
+            filters['inv_layers'] = selected_inv_layers
+        if is_test_value is not None:
+            filters['is_test'] = is_test_value
             
-        return filters, start_date, end_date
+        # Apply date filter (handled separately)
+        date_filter = (pd.to_datetime(start_date), pd.to_datetime(end_date))
+        
+        # Return both standard filters and date range
+        return filters, date_filter
     
     def get_available_metrics(self):
         """Get available metrics for plotting"""
@@ -151,7 +179,7 @@ class Dashboard:
         """View for comparing datasets"""
         st.header("Dataset Comparison")
         
-        filters, start_date, end_date = self.get_common_filters()
+        filters, date_filter = self.get_common_filters()
         metric = st.selectbox("Select Metric", self.get_available_metrics())
         
         # Create filtered dataframe
@@ -164,9 +192,9 @@ class Dashboard:
             filtered_df = filtered_df[filtered_df[key] == value]
             
         # Apply date filtering if needed
-        if start_date and end_date:
-            filtered_df = filtered_df[(filtered_df['timestamp'] >= start_date) & 
-                                     (filtered_df['timestamp'] <= end_date)]
+        if date_filter:
+            filtered_df = filtered_df[(filtered_df['timestamp'] >= date_filter[0]) & 
+                                     (filtered_df['timestamp'] <= date_filter[1])]
         
         # UI controls for plot
         col1, col2 = st.columns(2)
@@ -248,7 +276,7 @@ class Dashboard:
         """View for comparing how parameters affect metrics"""
         st.header("Parameter Comparison Visualization")
         
-        filters, start_date, end_date = self.get_common_filters()
+        filters, date_filter = self.get_common_filters()
         metric = self.get_available_metrics()
             
         if st.button("Generate Plot"):
@@ -258,9 +286,9 @@ class Dashboard:
                 filtered_df = filtered_df[filtered_df[key] == value]
             
             # Apply date filtering if needed
-            if start_date and end_date:
-                filtered_df = filtered_df[(filtered_df['timestamp'] >= start_date) & 
-                                         (filtered_df['timestamp'] <= end_date)]
+            if date_filter:
+                filtered_df = filtered_df[(filtered_df['timestamp'] >= date_filter[0]) & 
+                                         (filtered_df['timestamp'] <= date_filter[1])]
             
             viz = VisualizationManager(filtered_df)
             
@@ -289,7 +317,7 @@ class Dashboard:
         """View for visualizing metric changes over time"""
         st.header("Time Series Visualization")
         
-        filters, start_date, end_date = self.get_common_filters()
+        filters, date_filter = self.get_common_filters()
         metric = self.get_available_metrics()
         
         group_by = st.selectbox("Group By", 
@@ -312,17 +340,16 @@ class Dashboard:
             viz = VisualizationManager(filtered_df)
             
             # Convert dates to strings for the function
-            start_date_str = start_date.strftime("%Y-%m-%d") if start_date else None
-            end_date_str = end_date.strftime("%Y-%m-%d") if end_date else None
+            date_filter_str = [f"{date.strftime('%Y-%m-%d')}" for date in date_filter]
             
             # Generate the plot
-            viz.plot_metric_over_time(metric, group_by, start_date_str, end_date_str, rolling_window)
+            viz.plot_metric_over_time(metric, group_by, date_filter_str[0], date_filter_str[1], rolling_window)
             
             # Find the saved plot
             plots_dir = Path("src/results") / self.df["experiment_name"].iloc[0] / "plots"
             date_suffix = ""
-            if start_date_str or end_date_str:
-                date_suffix = f"_{start_date_str or 'start'}_{end_date_str or 'end'}"
+            if date_filter_str:
+                date_suffix = f"_{date_filter_str[0]}_{date_filter_str[1]}"
             plot_path = plots_dir / f"time_series_{metric}{date_suffix}.png"
             
             if plot_path.exists():
@@ -343,7 +370,7 @@ class Dashboard:
         """View for creating heatmaps of parameter interactions"""
         st.header("Parameter Heatmap Visualization")
         
-        filters, start_date, end_date = self.get_common_filters()
+        filters, date_filter = self.get_common_filters()
         metric = self.get_available_metrics()
         
         col1, col2 = st.columns(2)
@@ -366,9 +393,9 @@ class Dashboard:
                 filtered_df = filtered_df[filtered_df[key] == value]
             
             # Apply date filtering if needed
-            if start_date and end_date:
-                filtered_df = filtered_df[(filtered_df['timestamp'] >= start_date) & 
-                                         (filtered_df['timestamp'] <= end_date)]
+            if date_filter:
+                filtered_df = filtered_df[(filtered_df['timestamp'] >= date_filter[0]) & 
+                                         (filtered_df['timestamp'] <= date_filter[1])]
             
             viz = VisualizationManager(filtered_df)
             
@@ -400,7 +427,7 @@ class Dashboard:
         """View for exploring the raw experiment data"""
         st.header("Raw Data Explorer")
         
-        filters, start_date, end_date = self.get_common_filters()
+        filters, date_filter = self.get_common_filters()
         
         # Create filtered dataframe
         filtered_df = self.df.copy()
@@ -408,9 +435,9 @@ class Dashboard:
             filtered_df = filtered_df[filtered_df[key] == value]
         
         # Apply date filtering if needed
-        if start_date and end_date:
-            filtered_df = filtered_df[(filtered_df['timestamp'] >= start_date) & 
-                                     (filtered_df['timestamp'] <= end_date)]
+        if date_filter:
+            filtered_df = filtered_df[(filtered_df['timestamp'] >= date_filter[0]) & 
+                                     (filtered_df['timestamp'] <= date_filter[1])]
         
         # Add a display name column to make experiment IDs more readable
         filtered_df = filtered_df.copy()  # Create a copy to avoid SettingWithCopyWarning
@@ -444,6 +471,220 @@ class Dashboard:
                 "text/csv",
                 key='download-csv'
             )
+
+    def statistical_analysis_view(self):
+        """
+        View for statistical analysis of experiments across multiple runs.
+        Generates plots with error bars showing mean ± std for metrics.
+        """
+        st.header("Statistical Analysis across Multiple Runs")
+        st.write("""
+        This view shows statistical analysis of experiments with the same configuration parameters.
+        You can either view statistics with error bars across multiple runs or compare individual run iterations.
+        """)
+        
+        # Get common filters
+        filters, date_filter = self.get_common_filters()
+        
+        # Select metric
+        metric = st.selectbox("Select Metric", self.get_available_metrics())
+        
+        # Plot configuration
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            x_axis = st.selectbox("X-Axis Parameter", 
+                                ['n_train', 'lmax', 'inv_layers', 'num_features', 'max_epochs'], 
+                                index=0)
+        with col2:
+            hue = st.selectbox("Color By", 
+                             ['lmax', 'inv_layers', 'dataset', 'None'], 
+                             index=0)
+            hue = None if hue == 'None' else hue
+        with col3:
+            facet_by = st.selectbox("Facet By", 
+                                  ['inv_layers', 'lmax', 'dataset', 'None'], 
+                                  index=0)
+            facet_by = None if facet_by == 'None' else facet_by
+        
+        # View type selector
+        view_type = st.radio(
+            "View Type",
+            ["Error Bars (Mean ± Std)", "Individual Run Iterations"]
+        )
+        
+        # Advanced options in expander
+        with st.expander("Advanced Grouping Options"):
+            st.write("""
+            By default, experiments are grouped by all parameters except those used for plotting.
+            You can customize which parameters are used for grouping.
+            """)
+            
+            # Let user select parameters to group by
+            all_params = [col for col in self.df.columns if col not in 
+                        ['experiment_id', 'timestamp', 'run_directory', 'metrics_file', 
+                         'training_log_file', 'evaluation_log_file', 'deployed_model_file',
+                         metric, 'final_training_loss', 'final_validation_loss']]
+            
+            use_custom_grouping = st.checkbox("Use custom grouping parameters", value=False)
+            
+            if use_custom_grouping:
+                group_by = st.multiselect(
+                    "Group By Parameters",
+                    options=all_params,
+                    default=['dataset', 'lmax', 'inv_layers', 'n_train', 'num_features']
+                )
+                
+                exclude_params = st.multiselect(
+                    "Exclude Parameters from Grouping",
+                    options=all_params,
+                    default=[]
+                )
+            else:
+                group_by = None
+                exclude_params = None
+        
+        # Generate button
+        if st.button("Generate Statistical Analysis"):
+            st.write("Generating statistical analysis plot...")
+            
+            # Create filtered dataframe
+            filtered_df = self.df.copy()
+            
+            # Apply filters
+            for key, value in filters.items():
+                filtered_df = filtered_df[filtered_df[key] == value]
+                
+            # Apply date filtering
+            if date_filter:
+                filtered_df = filtered_df[(filtered_df['timestamp'] >= date_filter[0]) & 
+                                         (filtered_df['timestamp'] <= date_filter[1])]
+                
+            if filtered_df.empty:
+                st.warning("No data matches the selected filters")
+                return
+                
+            # Create visualization manager with filtered data
+            viz = VisualizationManager(filtered_df)
+            
+            if view_type == "Error Bars (Mean ± Std)":
+                # Generate plot with error bars
+                viz.plot_with_error_bars(
+                    metric=metric,
+                    x_axis=x_axis,
+                    hue=hue,
+                    facet_by=facet_by,
+                    filters=None,  # Already filtered
+                    group_by=group_by,
+                    exclude_from_grouping=exclude_params
+                )
+                
+                # Display the plot
+                plots_dir = Path("src/results") / self.df["experiment_name"].iloc[0] / "plots"
+                plot_path = plots_dir / f"error_bars_{metric}_{x_axis}.png"
+                
+                if plot_path.exists():
+                    st.image(str(plot_path))
+                    
+                    # Add download button
+                    with open(plot_path, "rb") as file:
+                        btn = st.download_button(
+                            label="Download Plot",
+                            data=file,
+                            file_name=f"error_bars_{metric}_{x_axis}.png",
+                            mime="image/png"
+                        )
+                else:
+                    st.error("Plot generation failed or file not found")
+                    
+                # Show detailed statistics
+                st.subheader("Statistical Summary")
+                
+                # Create experiment groups
+                experiment_groups = viz.group_by_config(group_by, exclude_params)
+                
+                # Calculate statistics
+                stats_df = viz.calculate_group_statistics(experiment_groups, [metric])
+                
+                if not stats_df.empty:
+                    # Reorder columns for better display
+                    display_cols = ['metric', 'mean', 'std', 'min', 'max', 'count', 'cv']
+                    param_cols = [c for c in stats_df.columns if c not in display_cols]
+                    display_order = param_cols + display_cols
+                    
+                    # Show the statistics table
+                    st.dataframe(stats_df[display_order])
+                    
+                    # Add CSV download
+                    csv = stats_df.to_csv(index=False)
+                    st.download_button(
+                        label="Download Statistics as CSV",
+                        data=csv,
+                        file_name=f"statistics_{metric}.csv",
+                        mime="text/csv"
+                    )
+                else:
+                    st.warning("No statistical data available for the selected parameters")
+                    
+            else:  # Individual Run Iterations
+                # Create figure
+                plt.figure(figsize=(12, 8))
+                
+                # First, group experiments by configuration
+                if 'run_iteration' not in exclude_params and exclude_params is not None:
+                    exclude_params.append('run_iteration')
+                elif exclude_params is None:
+                    exclude_params = ['run_iteration']
+                    
+                # Group experiments by configuration (excluding run_iteration)
+                experiment_groups = viz.group_by_config(group_by, exclude_params)
+                
+                # For each configuration, plot all run iterations
+                for params, group_df in experiment_groups.items():
+                    # Skip if only one run
+                    if len(group_df) <= 1:
+                        continue
+                        
+                    # Create a plot showing individual run iterations
+                    fig, ax = plt.subplots(figsize=(10, 6))
+                    
+                    # Get parameter values to set up plot title
+                    param_dict = {p: v for p, v in params}
+                    
+                    # Extract values for x-axis and metric
+                    x_values = group_df[x_axis].values
+                    metric_values = group_df[metric].values
+                    
+                    # Get run iterations
+                    run_iterations = group_df['run_iteration'].values
+                    
+                    # Plot individual points
+                    for i, (x, y, run) in enumerate(zip(x_values, metric_values, run_iterations)):
+                        ax.scatter(x, y, label=f"Run {run}", s=100, alpha=0.7)
+                        ax.text(x, y, f"Run {run}", fontsize=9, ha='center', va='bottom')
+                    
+                    # Set axis labels and title
+                    ax.set_xlabel(x_axis.replace('_', ' ').title())
+                    ax.set_ylabel(metric.replace('_', ' ').title())
+                    ax.set_title(f"{metric.replace('_', ' ').title()} for Multiple Runs\n" + 
+                               ", ".join([f"{p}={v}" for p, v in params]))
+                    
+                    # Set log scale if appropriate
+                    if x_axis in ['n_train', 'num_features']:
+                        ax.set_xscale('log')
+                    if metric.endswith('_mae') or metric.endswith('_loss'):
+                        ax.set_yscale('log')
+                    
+                    # Add grid
+                    ax.grid(True, alpha=0.3, linestyle='--')
+                    
+                    # Show the plot
+                    st.pyplot(fig)
+                    plt.close(fig)
+                
+                if not experiment_groups:
+                    st.warning("No configurations with multiple run iterations found.")
+                elif all(len(group_df) <= 1 for _, group_df in experiment_groups.items()):
+                    st.warning("No configurations have multiple run iterations for comparison.")
 
 if __name__ == "__main__":
     dashboard = Dashboard()
