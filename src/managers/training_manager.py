@@ -1,9 +1,14 @@
-# src/experiments/training_manager.py
+# src/managers/training_manager.py
+"""
+TrainingManager module:
+This module handles training, deployment, and evaluation.
+It calls external commands (e.g., nequip-train, nequip-deploy, nequip-evaluate) and logs their output.
+"""
+
 import subprocess
 from pathlib import Path
 from typing import Optional
 from src.managers.logging_manager import LoggingManager
-import sys
 
 class TrainingManager:
     def __init__(self, base_dir: str = "results"):
@@ -11,7 +16,7 @@ class TrainingManager:
         self.logger = LoggingManager()
     
     def train(self, config_path: str) -> None:
-        """Run nequip training."""
+        """Run training using an external command."""
         self.logger.section("Training Process")
         
         if not Path(config_path).exists():
@@ -22,7 +27,6 @@ class TrainingManager:
         cmd = f"nequip-train {config_path}"
         try:
             self.logger.info("Training in progress...")
-            # Use Popen to stream output in real-time
             with subprocess.Popen(
                 cmd,
                 shell=True,
@@ -31,16 +35,14 @@ class TrainingManager:
                 text=True
             ) as process:
                 for line in process.stdout:
-                    print(line, end='')  # Print to terminal
-                    self.logger.info(line.strip())  # Log the output
-                
+                    print(line, end='')
+                    self.logger.info(line.strip())
                 process.wait()
                 if process.returncode == 0:
                     self.logger.success("Training completed successfully")
                 else:
                     self.logger.error(f"Training failed with return code {process.returncode}")
                     raise subprocess.CalledProcessError(process.returncode, cmd)
-        
         except subprocess.CalledProcessError as e:
             self.logger.error(f"Training failed with error code {e.returncode}")
             raise
@@ -48,7 +50,7 @@ class TrainingManager:
         self.logger.divider()
     
     def deploy(self, train_dir: str, output_path: Optional[str] = None) -> None:
-        """Deploy trained model."""
+        """Deploy the trained model using an external command."""
         train_dir = Path(train_dir)
         if not train_dir.exists():
             self.logger.error(f"Training directory not found: {train_dir}")
@@ -67,7 +69,7 @@ class TrainingManager:
             raise
     
     def evaluate(self, train_dir: str, batch_size: int = 50) -> None:
-        """Evaluate model."""
+        """Evaluate the trained model using an external command."""
         train_dir = Path(train_dir)
         if not train_dir.exists():
             self.logger.error(f"Training directory not found: {train_dir}")
